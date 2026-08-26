@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Expense Splitter
 
-## Getting Started
+Aplicație simplă tip "Splitwise": creezi un grup, adaugi membri și
+cheltuieli, iar aplicația calculează automat cine cui datorează bani.
 
-First, run the development server:
+Scopul, modelele de date și fazele de implementare (ce e gata și ce
+urmează) sunt documentate în [`spec.md`](./spec.md).
+
+## Stack
+- [Next.js](https://nextjs.org) (App Router) + TypeScript
+- Tailwind CSS
+- Prisma ORM + SQLite
+
+## Pornire locală
 
 ```bash
+npm install
+cp .env.example .env
+npx prisma migrate dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplicația pornește pe [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Dacă ai deja `node_modules`, `.env` și baza de date create (de exemplu
+pe mașina pe care ai dezvoltat inițial), e suficient `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structură
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app` — pagini (App Router) și server actions
+- `src/lib` — logică de business (calcul solduri, formatare bani, client Prisma)
+- `prisma/schema.prisma` — modelele de date
