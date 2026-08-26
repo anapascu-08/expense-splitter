@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  members   Member[]
+  expenses  Expense[]
+}
+
+model Member {
+  id      String  @id @default(cuid())
+  name    String
+  groupId String
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  paidExpenses Expense[]            @relation("PaidBy")
+  shares       ExpenseParticipant[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Int
+  createdAt   DateTime @default(now())
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  paidById String
+  paidBy   Member @relation("PaidBy", fields: [paidById], references: [id])
+
+  participants ExpenseParticipant[]
+}
+
+model ExpenseParticipant {
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, memberId])
+}
