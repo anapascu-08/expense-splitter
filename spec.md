@@ -3,7 +3,19 @@
 ## Stack
 - Next.js (App Router) + TypeScript
 - Tailwind CSS pentru UI
-- Prisma ORM + SQLite (fișier local `dev.db`)
+- Prisma ORM + SQLite (fișier local `dev.db`) în dev; PostgreSQL la deploy
+
+## Deploy
+
+- **Hosting:** Vercel (plan Hobby, gratuit) — deploy automat din GitHub,
+  subdomeniu `*.vercel.app` (fără domeniu cumpărat).
+- **Bază de date:** PostgreSQL pe Neon (free tier). Vercel injectează
+  `DATABASE_URL` prin integrarea Storage → Neon.
+- **Migrații:** scriptul de build rulează `prisma migrate deploy` înainte de
+  `next build`, deci schema se aplică singură la fiecare deploy.
+- Local se lucrează în continuare pe SQLite; trecerea pe Postgres + Vercel
+  e izolată pe branch-ul `deploy-postgres` și se aduce pe `main` chiar
+  înainte de publicare. Detalii în [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## Scop MVP
 O aplicație simplă tip "Splitwise" pentru un grup de prieteni care vor
