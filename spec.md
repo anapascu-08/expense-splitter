@@ -3,7 +3,7 @@
 ## Stack
 - Next.js (App Router) + TypeScript
 - Tailwind CSS pentru UI
-- Prisma ORM + PostgreSQL (Neon în producție, deploy pe Vercel)
+- Prisma ORM + SQLite (fișier local `dev.db`)
 
 ## Scop MVP
 O aplicație simplă tip "Splitwise" pentru un grup de prieteni care vor

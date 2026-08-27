@@ -2,9 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createGroup } from "./actions";
 
-// Data is per-request; never prerender at build time (no DB connection needed then).
-export const dynamic = "force-dynamic";
-
 export default async function HomePage() {
   const groups = await prisma.group.findMany({
     orderBy: { createdAt: "desc" },

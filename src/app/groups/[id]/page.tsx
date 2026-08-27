@@ -5,9 +5,6 @@ import { computeBalances, computeSettlement } from "@/lib/balances";
 import { formatBani } from "@/lib/money";
 import { addExpense, addMember, deleteExpense } from "@/app/actions";
 
-// Data is per-request; never prerender at build time (no DB connection needed then).
-export const dynamic = "force-dynamic";
-
 export default async function GroupPage({
   params,
 }: {
