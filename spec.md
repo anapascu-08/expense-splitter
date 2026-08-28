@@ -135,7 +135,10 @@ unui slot `Member` la accept invitație.
   câmp `Expense.category` (nullable); selector în formular; iconiță + etichetă
   pe fiecare cheltuială; rezumat „Pe categorii" sub lista de cheltuieli
 - Notificări (email/push) când se adaugă o cheltuială nouă
-- Export (CSV/PDF) al cheltuielilor și soldurilor
+- ✅ Export CSV — route handler `GET /groups/[id]/export?type=expenses|balances`
+  (protejat cu `requireGroupAccess`), serializare pură test-first în
+  `src/lib/csv.ts` (RFC 4180), sume cu punct zecimal + BOM UTF-8 pentru Excel.
+  PDF încă nu.
 - Grafice/rezumat vizual al cheltuielilor pe grup
 
 ### Faza 6 — UI/UX & polish vizual

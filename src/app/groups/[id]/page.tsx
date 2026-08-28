@@ -526,6 +526,24 @@ export default async function GroupPage({
         )}
       </section>
 
+      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 className="text-lg font-medium">Export</h2>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <a
+            href={`/groups/${group.id}/export?type=expenses`}
+            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+          >
+            Cheltuieli (CSV)
+          </a>
+          <a
+            href={`/groups/${group.id}/export?type=balances`}
+            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+          >
+            Solduri (CSV)
+          </a>
+        </div>
+      </section>
+
       {group.members.length > 0 && (
         <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
           <h2 className="text-lg font-medium">Adaugă o cheltuială</h2>
