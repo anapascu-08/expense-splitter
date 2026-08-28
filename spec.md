@@ -139,7 +139,10 @@ unui slot `Member` la accept invitație.
   (protejat cu `requireGroupAccess`), serializare pură test-first în
   `src/lib/csv.ts` (RFC 4180), sume cu punct zecimal + BOM UTF-8 pentru Excel.
   PDF încă nu.
-- Grafice/rezumat vizual al cheltuielilor pe grup
+- ✅ Rezumat vizual pe grup — agregări pure test-first în `src/lib/summary.ts`
+  (`groupTotal`, `spendByCategory`, `spendByPayer`); componenta `GroupSummary`
+  randează bare CSS (fără bibliotecă de charts): total grup, cheltuieli pe
+  categorie, cât a plătit fiecare membru
 
 ### Faza 6 — UI/UX & polish vizual
 

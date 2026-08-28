@@ -21,11 +21,11 @@ import {
 } from "@/app/actions";
 import { ConfirmButton } from "@/app/confirm-button";
 import { ExpenseForm } from "@/app/expense-form";
+import { GroupSummary } from "@/app/group-summary";
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS,
   isExpenseCategory,
-  type ExpenseCategory,
 } from "@/lib/categories";
 
 const SPLIT_LABEL: Record<string, string> = {
@@ -82,16 +82,6 @@ export default async function GroupPage({
     payCount.set(payment.toId, (payCount.get(payment.toId) ?? 0) + 1);
   }
 
-  // Spend per category (uncategorised folded under "none"), largest first.
-  const byCategory = new Map<ExpenseCategory | "none", number>();
-  for (const expense of group.expenses) {
-    const key: ExpenseCategory | "none" =
-      expense.category && isExpenseCategory(expense.category)
-        ? expense.category
-        : "none";
-    byCategory.set(key, (byCategory.get(key) ?? 0) + expense.amount);
-  }
-  const categoryTotals = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
 
   const boundUpdateGroup = updateGroup.bind(null, group.id);
   const boundAddMember = addMember.bind(null, group.id);
@@ -508,23 +498,9 @@ export default async function GroupPage({
             ))}
           </ul>
         )}
-
-        {categoryTotals.length > 1 && (
-          <div className="mt-2 flex flex-col gap-1 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
-            <p className="font-medium">Pe categorii</p>
-            {categoryTotals.map(([key, total]) => (
-              <div key={key} className="flex justify-between">
-                <span>
-                  {key === "none"
-                    ? "Fără categorie"
-                    : `${CATEGORY_ICONS[key]} ${CATEGORY_LABELS[key]}`}
-                </span>
-                <span>{formatBani(total)} RON</span>
-              </div>
-            ))}
-          </div>
-        )}
       </section>
+
+      <GroupSummary expenses={group.expenses} members={group.members} />
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Export</h2>
