@@ -11,8 +11,17 @@ const globalForPrisma = globalThis as unknown as {
 // so both the CLI and the app agree on the same database file.
 const dbPath = path.join(process.cwd(), "prisma", "dev.db");
 
+// An explicitly absolute `file:` DATABASE_URL (e.g. the integration test db)
+// overrides the computed dev.db path; a relative one does not, since relative
+// sqlite paths don't resolve consistently at runtime.
+const envPath = process.env.DATABASE_URL?.startsWith("file:")
+  ? process.env.DATABASE_URL.slice("file:".length)
+  : undefined;
+const dbUrl =
+  envPath && path.isAbsolute(envPath) ? `file:${envPath}` : `file:${dbPath}`;
+
 export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl: `file:${dbPath}` });
+  globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl: dbUrl });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

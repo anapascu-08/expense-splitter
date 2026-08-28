@@ -34,9 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# sqlite database
+# sqlite database (dev.db, test.db, and -journal/-wal/-shm sidecars)
 /prisma/*.db
-/prisma/*.db-journal
+/prisma/*.db-*
 
 # vercel
 .vercel

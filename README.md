@@ -73,10 +73,17 @@ După ce modifici `prisma/schema.prisma`, rulează
 
 ## Teste & verificare
 
-Lucrăm test-first pe logica din `src/lib/` (runner: [Vitest](https://vitest.dev)).
+Lucrăm test-first (runner: [Vitest](https://vitest.dev)), pe două proiecte:
+
+- **unit** (`src/**/*.test.ts`) — logică pură din `src/lib/`, fără I/O.
+- **integration** (`src/**/*.integration.test.ts`) — `src/lib/access.ts`,
+  sesiunile din `src/lib/auth.ts` și server actions, rulate pe o bază SQLite
+  de test (`prisma/test.db`) cu `next/headers` · `next/navigation` · `next/cache`
+  mock-uite. Harness-ul e în `src/test/`; migrarea bazei de test se face automat
+  (`prisma migrate deploy`) în `globalSetup`.
 
 ```bash
-npm test          # watch — bucla TDD
+npm test          # watch — bucla TDD (ambele proiecte)
 npm run test:run  # o singură rulare
 npm run check     # tsc --noEmit && eslint && vitest run (rulează înainte de commit)
 ```
