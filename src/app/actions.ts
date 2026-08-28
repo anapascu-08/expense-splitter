@@ -89,6 +89,7 @@ export async function updateGroup(groupId: string, formData: FormData) {
 
   await prisma.group.update({ where: { id: groupId }, data: { name } });
   revalidatePath(`/groups/${groupId}`);
+  redirect(`/groups/${groupId}`);
 }
 
 export async function deleteGroup(groupId: string) {
@@ -125,6 +126,7 @@ export async function updateMember(
     data: { name },
   });
   revalidatePath(`/groups/${groupId}`);
+  redirect(`/groups/${groupId}`);
 }
 
 export async function deleteMember(groupId: string, memberId: string) {
