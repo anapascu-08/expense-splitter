@@ -83,17 +83,29 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Sume custom per participant (nu doar împărțire egală)
 - Împărțire pe procente sau pe cote (shares)
 - Validare: suma părților trebuie să fie egală cu totalul cheltuielii
+- UI/UX: selector de mod (egal / sume / procente / cote) în formularul de
+  cheltuială; câmp per participant care apare doar pentru modul ales;
+  indicator live „alocat X / total Y" cu diferența evidențiată roșu până
+  când se închide la zero; submit blocat cât timp nu se potrivește.
 
 ### Faza 3 — Plăți & decontări persistate
 - Model `Payment` (cine a plătit cui, cât, când) — momentan settle-up e doar
   calculat live, nu se poate marca o datorie ca „achitată”
 - Istoric plăți per grup
 - Solduri recalculate ținând cont de plățile deja făcute
+- UI/UX: buton „Marchează achitat" pe fiecare linie din lista de transferuri,
+  care pre-completează un formular de plată (de la / către / sumă, editabile);
+  istoricul plăților ca secțiune separată sub solduri, fiecare cu opțiune de
+  anulare; soldurile arată clar partea deja stinsă vs. rămasă.
 
 ### Faza 4 — Autentificare & acces multi-utilizator
 - Conturi reale de utilizator (în loc de membri fără login)
 - Linkuri de invitație pentru a intra într-un grup
 - Fiecare utilizator își vede propriile grupuri; permisiuni de bază
+- UI/UX: ecrane dedicate login / register minimale; pagina de invitație
+  arată numele grupului și cine invită înainte de accept; user neautentificat
+  e redirecționat spre login și adus înapoi după; header cu user curent +
+  „Deconectare"; stări clare pentru link de invitație expirat / invalid.
 
 ### Faza 5 — Polish & extra
 - Multiple valute
