@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { createGroup } from "./actions";
 
 export default async function HomePage() {
+  const user = await requireUser();
   const groups = await prisma.group.findMany({
+    where: { groupMembers: { some: { userId: user.id } } },
     orderBy: { createdAt: "desc" },
     include: { members: true },
   });

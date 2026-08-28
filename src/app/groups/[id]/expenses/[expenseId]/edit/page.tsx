@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireGroupAccess } from "@/lib/access";
 import { baniToInput, basisPointsToInput, sharesToInput } from "@/lib/money";
 import { updateExpense } from "@/app/actions";
 import { ExpenseForm, type SplitMode } from "@/app/expense-form";
@@ -11,6 +12,7 @@ export default async function EditExpensePage({
   params: Promise<{ id: string; expenseId: string }>;
 }) {
   const { id, expenseId } = await params;
+  await requireGroupAccess(id);
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId: id },

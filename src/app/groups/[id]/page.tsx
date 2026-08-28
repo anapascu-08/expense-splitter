@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireGroupAccess } from "@/lib/access";
+import { CopyButton } from "@/app/copy-button";
 import { computeBalances, computeSettlement } from "@/lib/balances";
 import { baniToInput, formatBani } from "@/lib/money";
 import {
   addExpense,
   addMember,
   addPayment,
+  createInvite,
   deleteExpense,
   deleteGroup,
   deleteMember,
   deletePayment,
+  revokeInvite,
   updateGroup,
   updateMember,
 } from "@/app/actions";
@@ -35,6 +40,8 @@ export default async function GroupPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { role } = await requireGroupAccess(id);
+  const isOwner = role === "owner";
 
   const group = await prisma.group.findUnique({
     where: { id },
@@ -47,6 +54,10 @@ export default async function GroupPage({
       payments: {
         orderBy: { createdAt: "desc" },
         include: { from: true, to: true },
+      },
+      invites: {
+        where: { revokedAt: null, expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: "desc" },
       },
     },
   });
@@ -86,6 +97,12 @@ export default async function GroupPage({
   const boundAddMember = addMember.bind(null, group.id);
   const boundAddExpense = addExpense.bind(null, group.id);
   const boundAddPayment = addPayment.bind(null, group.id);
+  const boundCreateInvite = createInvite.bind(null, group.id);
+
+  const hdrs = await headers();
+  const origin = `${hdrs.get("x-forwarded-proto") ?? "http"}://${
+    hdrs.get("host") ?? "localhost:3000"
+  }`;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
@@ -97,36 +114,38 @@ export default async function GroupPage({
           ← toate grupurile
         </Link>
         <h1 className="text-2xl font-semibold">{group.name}</h1>
-        <details className="text-sm text-gray-500 dark:text-gray-400">
-          <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200">
-            redenumește / șterge grupul
-          </summary>
-          <div className="mt-3 flex flex-col gap-3">
-            <form action={boundUpdateGroup} className="flex gap-2">
-              <input
-                type="text"
-                name="name"
-                defaultValue={group.name}
-                required
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
-              />
-              <button
-                type="submit"
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-              >
-                Salvează
-              </button>
-            </form>
-            <form action={deleteGroup.bind(null, group.id)}>
-              <ConfirmButton
-                message={`Ștergi grupul „${group.name}” cu tot cu membri și cheltuieli? Acțiunea nu poate fi anulată.`}
-                className="text-sm text-red-600 hover:underline dark:text-red-400"
-              >
-                Șterge grupul
-              </ConfirmButton>
-            </form>
-          </div>
-        </details>
+        {isOwner && (
+          <details className="text-sm text-gray-500 dark:text-gray-400">
+            <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200">
+              redenumește / șterge grupul
+            </summary>
+            <div className="mt-3 flex flex-col gap-3">
+              <form action={boundUpdateGroup} className="flex gap-2">
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={group.name}
+                  required
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
+                />
+                <button
+                  type="submit"
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+                >
+                  Salvează
+                </button>
+              </form>
+              <form action={deleteGroup.bind(null, group.id)}>
+                <ConfirmButton
+                  message={`Ștergi grupul „${group.name}” cu tot cu membri și cheltuieli? Acțiunea nu poate fi anulată.`}
+                  className="text-sm text-red-600 hover:underline dark:text-red-400"
+                >
+                  Șterge grupul
+                </ConfirmButton>
+              </form>
+            </div>
+          </details>
+        )}
       </header>
 
       <section className="flex flex-col gap-3">
@@ -219,6 +238,55 @@ export default async function GroupPage({
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
           >
             Adaugă membru
+          </button>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 className="text-lg font-medium">Invită pe cineva</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Oricine deschide un link activ și e autentificat intră în grup.
+          Linkurile expiră după 7 zile.
+        </p>
+        {group.invites.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {group.invites.map((invite) => {
+              const url = `${origin}/invite/${invite.token}`;
+              return (
+                <li
+                  key={invite.token}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
+                >
+                  <code className="truncate text-gray-600 dark:text-gray-300">
+                    {url}
+                  </code>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <CopyButton
+                      text={url}
+                      className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    />
+                    <form
+                      action={revokeInvite.bind(null, group.id, invite.token)}
+                    >
+                      <button
+                        type="submit"
+                        className="text-gray-400 transition hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        revocă
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <form action={boundCreateInvite}>
+          <button
+            type="submit"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+          >
+            Generează link de invitație
           </button>
         </form>
       </section>

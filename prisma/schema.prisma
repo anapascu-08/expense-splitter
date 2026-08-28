@@ -11,13 +11,74 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// A registered account. Distinct from Member: a User has login + owns/joins
+// groups, while a Member is just a named slot inside one group's expenses.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions       Session[]
+  ownedGroups    Group[]       @relation("GroupOwner")
+  memberships    GroupMember[]
+  createdInvites GroupInvite[] @relation("InviteCreatedBy")
+  claimedMembers Member[]
+}
+
+// Opaque server-side session. `id` is the SHA-256 hex of the random token kept
+// in the client cookie — nothing is signed, so no session secret is needed.
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Who can access a group, and at what level ("owner" | "member").
+model GroupMember {
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
+
+// Shareable join link. Reusable until it expires or is revoked.
+model GroupInvite {
+  token       String    @id @default(cuid())
+  groupId     String
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@index([groupId])
+}
+
 model Group {
   id        String    @id @default(cuid())
   name      String
   createdAt DateTime  @default(now())
-  members   Member[]
-  expenses  Expense[]
-  payments  Payment[]
+
+  ownerId String
+  owner   User   @relation("GroupOwner", fields: [ownerId], references: [id])
+
+  members      Member[]
+  groupMembers GroupMember[]
+  invites      GroupInvite[]
+  expenses     Expense[]
+  payments     Payment[]
 }
 
 model Member {
@@ -26,10 +87,16 @@ model Member {
   groupId String
   group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
+  // Optionally links this slot to a real account (claimed via an invite).
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   paidExpenses     Expense[]            @relation("PaidBy")
   shares           ExpenseParticipant[]
   paymentsSent     Payment[]            @relation("PaymentFrom")
   paymentsReceived Payment[]            @relation("PaymentTo")
+
+  @@unique([groupId, userId])
 }
 
 model Expense {

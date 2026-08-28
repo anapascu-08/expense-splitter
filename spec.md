@@ -104,14 +104,29 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   care creează plata cu suma din transfer; istoricul plăților ca secțiune
   separată sub solduri, cu opțiune de anulare.
 
-### Faza 4 — Autentificare & acces multi-utilizator
-- Conturi reale de utilizator (în loc de membri fără login)
-- Linkuri de invitație pentru a intra într-un grup
-- Fiecare utilizator își vede propriile grupuri; permisiuni de bază
-- UI/UX: ecrane dedicate login / register minimale; pagina de invitație
-  arată numele grupului și cine invită înainte de accept; user neautentificat
-  e redirecționat spre login și adus înapoi după; header cu user curent +
-  „Deconectare"; stări clare pentru link de invitație expirat / invalid.
+### Faza 4 — Autentificare & acces multi-utilizator ✅ (implementată)
+- Conturi reale de utilizator (`User` + email/parolă) — auth hand-rolled,
+  fără dependințe: `node:crypto` scrypt pentru parole (`src/lib/auth.ts`),
+  sesiuni opace în tabelul `Session` (cookie httpOnly cu token random, în DB
+  doar hash-ul SHA-256 → nu e nevoie de secret)
+- `Member` rămâne nume liber; accesul la grup e separat prin `GroupMember`
+  (`role`: `owner` | `member`). `Member.userId` e pregătit pentru „revendicare"
+  dar claiming-ul efectiv nu e încă implementat
+- Linkuri de invitație (`GroupInvite`, `/invite/[token]`) — refolosibile, expiră
+  după 7 zile, pot fi revocate; accept = `upsert` `GroupMember` cu rol `member`
+- Fiecare utilizator vede doar grupurile în care e `GroupMember`; ne-membru care
+  accesează direct URL-ul grupului primește 404 (nu scurgem existența).
+  Enforce în DAL (`requireUser` / `requireGroupAccess` — `src/lib/access.ts`)
+  la fiecare pagină + server action; fără middleware/proxy
+- Doar owner-ul poate redenumi / șterge grupul
+- UI/UX: ecrane `/login` + `/register` minimale (`AuthForm` cu `useActionState`,
+  erori inline); pagina de invitație arată cine invită + numele grupului înainte
+  de accept, cu mesaj clar pentru link expirat/revocat/invalid; nelogat →
+  `/login?next=…` și revenire după autentificare; header global (`SiteHeader`)
+  cu numele userului + „Deconectare"
+
+Rămas pe viitor: reset parolă, verificare email, OAuth, claiming efectiv al
+unui slot `Member` la accept invitație.
 
 ### Faza 5 — Polish & extra
 - Multiple valute

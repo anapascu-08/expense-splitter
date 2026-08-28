@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toBani, toBasisPoints, toShares, FULL_PERCENT_BP } from "@/lib/money";
 import { isExpenseCategory } from "@/lib/categories";
+import { requireUser } from "@/lib/auth";
+import { requireGroupAccess } from "@/lib/access";
+
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 type ParticipantWeight = { memberId: string; weight: number };
 
@@ -62,14 +66,24 @@ function readCategory(formData: FormData): string | null {
 }
 
 export async function createGroup(formData: FormData) {
+  const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
-  const group = await prisma.group.create({ data: { name } });
+  const group = await prisma.group.create({
+    data: {
+      name,
+      ownerId: user.id,
+      groupMembers: { create: { userId: user.id, role: "owner" } },
+    },
+  });
   redirect(`/groups/${group.id}`);
 }
 
 export async function updateGroup(groupId: string, formData: FormData) {
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
+
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
@@ -78,6 +92,9 @@ export async function updateGroup(groupId: string, formData: FormData) {
 }
 
 export async function deleteGroup(groupId: string) {
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
+
   // Cascade deletes members, expenses and participant rows (see schema).
   await prisma.group.delete({ where: { id: groupId } });
   revalidatePath("/");
@@ -85,6 +102,7 @@ export async function deleteGroup(groupId: string) {
 }
 
 export async function addMember(groupId: string, formData: FormData) {
+  await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
@@ -97,6 +115,7 @@ export async function updateMember(
   memberId: string,
   formData: FormData
 ) {
+  await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
@@ -109,6 +128,7 @@ export async function updateMember(
 }
 
 export async function deleteMember(groupId: string, memberId: string) {
+  await requireGroupAccess(groupId);
   // Block deletion while the member is tied to expenses: as payer the DB would
   // reject it (paidBy is onDelete: Restrict), and as a participant a cascade
   // delete would silently re-split past expenses. The UI hides the button in
@@ -133,6 +153,7 @@ export async function deleteMember(groupId: string, memberId: string) {
 }
 
 export async function addExpense(groupId: string, formData: FormData) {
+  await requireGroupAccess(groupId);
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
@@ -161,6 +182,7 @@ export async function updateExpense(
   expenseId: string,
   formData: FormData
 ) {
+  await requireGroupAccess(groupId);
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
@@ -195,11 +217,13 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(groupId: string, expenseId: string) {
+  await requireGroupAccess(groupId);
   await prisma.expense.deleteMany({ where: { id: expenseId, groupId } });
   revalidatePath(`/groups/${groupId}`);
 }
 
 export async function addPayment(groupId: string, formData: FormData) {
+  await requireGroupAccess(groupId);
   const fromId = String(formData.get("fromId") ?? "");
   const toId = String(formData.get("toId") ?? "");
   const amount = toBani(String(formData.get("amount") ?? "0"));
@@ -219,6 +243,50 @@ export async function addPayment(groupId: string, formData: FormData) {
 }
 
 export async function deletePayment(groupId: string, paymentId: string) {
+  await requireGroupAccess(groupId);
   await prisma.payment.deleteMany({ where: { id: paymentId, groupId } });
   revalidatePath(`/groups/${groupId}`);
+}
+
+// --- Invites -----------------------------------------------------------
+
+export async function createInvite(groupId: string) {
+  const { user } = await requireGroupAccess(groupId);
+  await prisma.groupInvite.create({
+    data: {
+      groupId,
+      createdById: user.id,
+      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+    },
+  });
+  revalidatePath(`/groups/${groupId}`);
+}
+
+export async function revokeInvite(groupId: string, token: string) {
+  await requireGroupAccess(groupId);
+  await prisma.groupInvite.updateMany({
+    where: { token, groupId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  revalidatePath(`/groups/${groupId}`);
+}
+
+export async function acceptInvite(token: string) {
+  const user = await requireUser();
+
+  const invite = await prisma.groupInvite.findUnique({ where: { token } });
+  if (
+    !invite ||
+    invite.revokedAt !== null ||
+    invite.expiresAt.getTime() < Date.now()
+  ) {
+    return;
+  }
+
+  await prisma.groupMember.upsert({
+    where: { groupId_userId: { groupId: invite.groupId, userId: user.id } },
+    create: { groupId: invite.groupId, userId: user.id, role: "member" },
+    update: {},
+  });
+  redirect(`/groups/${invite.groupId}`);
 }
