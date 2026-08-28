@@ -55,6 +55,7 @@ export default async function EditExpensePage({
           description: expense.description,
           amount: baniToInput(expense.amount),
           paidById: expense.paidById,
+          category: expense.category ?? "",
           splitMode,
           participantIds: expense.participants.map((p) => p.memberId),
           weights,

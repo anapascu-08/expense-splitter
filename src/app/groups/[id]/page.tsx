@@ -16,6 +16,12 @@ import {
 } from "@/app/actions";
 import { ConfirmButton } from "@/app/confirm-button";
 import { ExpenseForm } from "@/app/expense-form";
+import {
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+  isExpenseCategory,
+  type ExpenseCategory,
+} from "@/lib/categories";
 
 const SPLIT_LABEL: Record<string, string> = {
   EXACT: "sume exacte",
@@ -64,6 +70,17 @@ export default async function GroupPage({
     payCount.set(payment.fromId, (payCount.get(payment.fromId) ?? 0) + 1);
     payCount.set(payment.toId, (payCount.get(payment.toId) ?? 0) + 1);
   }
+
+  // Spend per category (uncategorised folded under "none"), largest first.
+  const byCategory = new Map<ExpenseCategory | "none", number>();
+  for (const expense of group.expenses) {
+    const key: ExpenseCategory | "none" =
+      expense.category && isExpenseCategory(expense.category)
+        ? expense.category
+        : "none";
+    byCategory.set(key, (byCategory.get(key) ?? 0) + expense.amount);
+  }
+  const categoryTotals = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
 
   const boundUpdateGroup = updateGroup.bind(null, group.id);
   const boundAddMember = addMember.bind(null, group.id);
@@ -378,12 +395,25 @@ export default async function GroupPage({
                 className="flex items-start justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
               >
                 <div>
-                  <p className="font-medium">{expense.description}</p>
+                  <p className="font-medium">
+                    {expense.category && isExpenseCategory(expense.category) && (
+                      <span
+                        className="mr-1"
+                        title={CATEGORY_LABELS[expense.category]}
+                      >
+                        {CATEGORY_ICONS[expense.category]}
+                      </span>
+                    )}
+                    {expense.description}
+                  </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     plătit de {expense.paidBy.name} · împărțit între{" "}
                     {expense.participants.map((p) => p.member.name).join(", ")}
                     {expense.splitMode !== "EQUAL" &&
                       ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
+                    {expense.category &&
+                      isExpenseCategory(expense.category) &&
+                      ` · ${CATEGORY_LABELS[expense.category]}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -409,6 +439,22 @@ export default async function GroupPage({
               </li>
             ))}
           </ul>
+        )}
+
+        {categoryTotals.length > 1 && (
+          <div className="mt-2 flex flex-col gap-1 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
+            <p className="font-medium">Pe categorii</p>
+            {categoryTotals.map(([key, total]) => (
+              <div key={key} className="flex justify-between">
+                <span>
+                  {key === "none"
+                    ? "Fără categorie"
+                    : `${CATEGORY_ICONS[key]} ${CATEGORY_LABELS[key]}`}
+                </span>
+                <span>{formatBani(total)} RON</span>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 

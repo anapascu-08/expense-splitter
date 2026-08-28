@@ -73,11 +73,14 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Ștergere cheltuială
 - Calcul automat solduri + listă minimă de transferuri (settle-up)
 
-### Faza 1 — Editare & corectură
-- Editare cheltuială existentă (descriere, sumă, plătitor, participanți)
-- Editare/ștergere membru dintr-un grup (cu grijă la cheltuielile existente)
+### Faza 1 — Editare & corectură ✅ (implementată)
+- Editare cheltuială existentă (descriere, sumă, plătitor, participanți) — pagină
+  dedicată `/groups/[id]/expenses/[expenseId]/edit`
+- Editare/ștergere membru dintr-un grup — ștergerea e blocată (UI + server) cât
+  timp membrul e legat de cheltuieli sau plăți
 - Editare nume grup, ștergere grup
-- Confirmare înainte de ștergere (momentan ștergerea e imediată, fără confirmare)
+- Confirmare înainte de ștergere — componenta `ConfirmButton` pe toate acțiunile
+  distructive
 
 ### Faza 2 — Împărțire flexibilă ✅ (implementată)
 - Sume custom per participant (nu doar împărțire egală) — mod `EXACT`
@@ -92,15 +95,14 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   evidențiată roșu până când se închide la zero; pentru `SHARES` preview cu
   cât iese fiecare; submit blocat cât timp nu se potrivește.
 
-### Faza 3 — Plăți & decontări persistate
-- Model `Payment` (cine a plătit cui, cât, când) — momentan settle-up e doar
-  calculat live, nu se poate marca o datorie ca „achitată”
-- Istoric plăți per grup
+### Faza 3 — Plăți & decontări persistate ✅ (implementată)
+- Model `Payment` (cine a plătit cui, cât, când)
+- Istoric plăți per grup — secțiune „Plăți", fiecare cu ștergere confirmată
 - Solduri recalculate ținând cont de plățile deja făcute
-- UI/UX: buton „Marchează achitat" pe fiecare linie din lista de transferuri,
-  care pre-completează un formular de plată (de la / către / sumă, editabile);
-  istoricul plăților ca secțiune separată sub solduri, fiecare cu opțiune de
-  anulare; soldurile arată clar partea deja stinsă vs. rămasă.
+  (`net = plătit − datorat + trimis − primit`)
+- UI/UX: buton „marchează achitat" pe fiecare linie din lista de transferuri,
+  care creează plata cu suma din transfer; istoricul plăților ca secțiune
+  separată sub solduri, cu opțiune de anulare.
 
 ### Faza 4 — Autentificare & acces multi-utilizator
 - Conturi reale de utilizator (în loc de membri fără login)
@@ -113,7 +115,10 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 
 ### Faza 5 — Polish & extra
 - Multiple valute
-- Categorii de cheltuieli (mâncare, transport, cazare etc.)
+- ✅ Categorii de cheltuieli — set fix de categorii (mâncare, transport,
+  cazare, băuturi, activități, cumpărături, altele) în `src/lib/categories.ts`;
+  câmp `Expense.category` (nullable); selector în formular; iconiță + etichetă
+  pe fiecare cheltuială; rezumat „Pe categorii" sub lista de cheltuieli
 - Notificări (email/push) când se adaugă o cheltuială nouă
 - Export (CSV/PDF) al cheltuielilor și soldurilor
 - Grafice/rezumat vizual al cheltuielilor pe grup

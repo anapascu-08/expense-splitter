@@ -38,6 +38,9 @@ model Expense {
   amount      Int
   createdAt   DateTime @default(now())
 
+  // One of the slugs in src/lib/categories.ts, or null = uncategorised.
+  category String?
+
   // How `amount` is divided among participants:
   //   EQUAL   — split equally (participant.weight ignored / all 1)
   //   EXACT   — participant.weight is the exact amount owed, in bani; sum == amount

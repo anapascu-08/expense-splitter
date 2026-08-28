@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatBani } from "@/lib/money";
 import { splitAmount } from "@/lib/balances";
+import { EXPENSE_CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
 
 export type SplitMode = "EQUAL" | "EXACT" | "PERCENT" | "SHARES";
 
@@ -11,6 +12,8 @@ export type ExpenseFormDefaults = {
   description: string;
   amount: string;
   paidById: string;
+  // "" = no category; otherwise one of the slugs in lib/categories.
+  category: string;
   splitMode: SplitMode;
   participantIds: string[];
   // memberId -> input string; RON for EXACT, percent for PERCENT
@@ -60,6 +63,7 @@ export function ExpenseForm({
   const [paidById, setPaidById] = useState(
     defaults?.paidById ?? members[0]?.id ?? ""
   );
+  const [category, setCategory] = useState(defaults?.category ?? "");
   const [splitMode, setSplitMode] = useState<SplitMode>(
     defaults?.splitMode ?? "EQUAL"
   );
@@ -155,6 +159,23 @@ export function ExpenseForm({
           {members.map((member) => (
             <option key={member.id} value={member.id}>
               {member.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        Categorie
+        <select
+          name="category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className={inputClass}
+        >
+          <option value="">— fără categorie —</option>
+          {EXPENSE_CATEGORIES.map((slug) => (
+            <option key={slug} value={slug}>
+              {CATEGORY_LABELS[slug]}
             </option>
           ))}
         </select>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toBani, toBasisPoints, toShares, FULL_PERCENT_BP } from "@/lib/money";
+import { isExpenseCategory } from "@/lib/categories";
 
 type ParticipantWeight = { memberId: string; weight: number };
 
@@ -52,6 +53,12 @@ function readSplit(
   }
 
   return { splitMode, participants };
+}
+
+// Read an optional expense category from the form. Unknown/blank -> null.
+function readCategory(formData: FormData): string | null {
+  const raw = String(formData.get("category") ?? "").trim();
+  return isExpenseCategory(raw) ? raw : null;
 }
 
 export async function createGroup(formData: FormData) {
@@ -140,6 +147,7 @@ export async function addExpense(groupId: string, formData: FormData) {
       description,
       amount,
       paidById,
+      category: readCategory(formData),
       splitMode: split.splitMode,
       participants: { create: split.participants },
     },
@@ -173,6 +181,7 @@ export async function updateExpense(
       description,
       amount,
       paidById,
+      category: readCategory(formData),
       splitMode: split.splitMode,
       participants: {
         deleteMany: {},
