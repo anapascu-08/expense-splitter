@@ -100,7 +100,12 @@ export async function deleteMember(groupId: string, memberId: string) {
     where: {
       id: memberId,
       groupId,
-      OR: [{ paidExpenses: { some: {} } }, { shares: { some: {} } }],
+      OR: [
+        { paidExpenses: { some: {} } },
+        { shares: { some: {} } },
+        { paymentsSent: { some: {} } },
+        { paymentsReceived: { some: {} } },
+      ],
     },
     select: { id: true },
   });
@@ -172,5 +177,29 @@ export async function updateExpense(
 
 export async function deleteExpense(groupId: string, expenseId: string) {
   await prisma.expense.deleteMany({ where: { id: expenseId, groupId } });
+  revalidatePath(`/groups/${groupId}`);
+}
+
+export async function addPayment(groupId: string, formData: FormData) {
+  const fromId = String(formData.get("fromId") ?? "");
+  const toId = String(formData.get("toId") ?? "");
+  const amount = toBani(String(formData.get("amount") ?? "0"));
+
+  if (!fromId || !toId || fromId === toId || amount <= 0) return;
+
+  // Both parties must belong to this group.
+  const membersInGroup = await prisma.member.count({
+    where: { groupId, id: { in: [fromId, toId] } },
+  });
+  if (membersInGroup !== 2) return;
+
+  await prisma.payment.create({
+    data: { groupId, fromId, toId, amount },
+  });
+  revalidatePath(`/groups/${groupId}`);
+}
+
+export async function deletePayment(groupId: string, paymentId: string) {
+  await prisma.payment.deleteMany({ where: { id: paymentId, groupId } });
   revalidatePath(`/groups/${groupId}`);
 }

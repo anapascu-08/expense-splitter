@@ -4,6 +4,12 @@ export type ExpenseForBalance = {
   participants: { memberId: string; weight: number }[];
 };
 
+export type PaymentForBalance = {
+  amount: number;
+  fromId: string;
+  toId: string;
+};
+
 // Split `total` (bani) proportionally to `weights`, returning whole bani that
 // sum to exactly `total`. Leftover bani from integer division go to the
 // participants with the largest fractional remainder (ties broken by order).
@@ -32,6 +38,10 @@ export type MemberBalance = {
   name: string;
   paid: number;
   owed: number;
+  // Real payments made / received while settling up.
+  sent: number;
+  received: number;
+  // net > 0 => is owed money, net < 0 => owes money.
   net: number;
 };
 
@@ -45,13 +55,18 @@ export type Transfer = {
 
 export function computeBalances(
   members: { id: string; name: string }[],
-  expenses: ExpenseForBalance[]
+  expenses: ExpenseForBalance[],
+  payments: PaymentForBalance[] = []
 ): MemberBalance[] {
   const paid = new Map<string, number>();
   const owed = new Map<string, number>();
+  const sent = new Map<string, number>();
+  const received = new Map<string, number>();
   for (const m of members) {
     paid.set(m.id, 0);
     owed.set(m.id, 0);
+    sent.set(m.id, 0);
+    received.set(m.id, 0);
   }
 
   for (const expense of expenses) {
@@ -69,10 +84,18 @@ export function computeBalances(
     });
   }
 
+  for (const payment of payments) {
+    sent.set(payment.fromId, (sent.get(payment.fromId) ?? 0) + payment.amount);
+    received.set(payment.toId, (received.get(payment.toId) ?? 0) + payment.amount);
+  }
+
   return members.map((m) => {
     const p = paid.get(m.id) ?? 0;
     const o = owed.get(m.id) ?? 0;
-    return { memberId: m.id, name: m.name, paid: p, owed: o, net: p - o };
+    const s = sent.get(m.id) ?? 0;
+    const r = received.get(m.id) ?? 0;
+    // Paying someone reduces how much you owe; receiving reduces what you're owed.
+    return { memberId: m.id, name: m.name, paid: p, owed: o, sent: s, received: r, net: p - o + s - r };
   });
 }
 

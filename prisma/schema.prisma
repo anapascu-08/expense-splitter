@@ -17,6 +17,7 @@ model Group {
   createdAt DateTime  @default(now())
   members   Member[]
   expenses  Expense[]
+  payments  Payment[]
 }
 
 model Member {
@@ -25,8 +26,10 @@ model Member {
   groupId String
   group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  paidExpenses Expense[]            @relation("PaidBy")
-  shares       ExpenseParticipant[]
+  paidExpenses     Expense[]            @relation("PaidBy")
+  shares           ExpenseParticipant[]
+  paymentsSent     Payment[]            @relation("PaymentFrom")
+  paymentsReceived Payment[]            @relation("PaymentTo")
 }
 
 model Expense {
@@ -61,4 +64,21 @@ model ExpenseParticipant {
   weight Int @default(1)
 
   @@id([expenseId, memberId])
+}
+
+// A real payment from one member to another (settling up). Recorded manually;
+// it reduces the outstanding balance between the two members.
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Int // bani
+  createdAt DateTime @default(now())
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  fromId String
+  from   Member @relation("PaymentFrom", fields: [fromId], references: [id], onDelete: Restrict)
+
+  toId String
+  to   Member @relation("PaymentTo", fields: [toId], references: [id], onDelete: Restrict)
 }

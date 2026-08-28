@@ -101,3 +101,56 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Notificări (email/push) când se adaugă o cheltuială nouă
 - Export (CSV/PDF) al cheltuielilor și soldurilor
 - Grafice/rezumat vizual al cheltuielilor pe grup
+
+### Faza 6 — UI/UX & polish vizual
+
+Până acum UI-ul e strict funcțional (formulare + tabele Tailwind, fără
+tratare de stări). Faza asta îl aduce la un nivel „prezentabil", fără
+librării de componente noi — doar Tailwind și convențiile deja folosite.
+
+**Principii**
+- Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)
+  trebuie să fie comod pe telefon, o singură coloană.
+- Zero configurare inutilă: valorile implicite bune (toți membrii participă,
+  plătitor = ultimul selectat) rămân un click distanță.
+- Feedback imediat la fiecare acțiune (server action) — stare de „se salvează",
+  apoi confirmare sau eroare vizibilă.
+
+**Layout & navigație**
+- Header simplu cu numele aplicației (link spre `/`) și, pe pagina de grup,
+  numele grupului + breadcrumb „← Toate grupurile".
+- Pagina de grup pe secțiuni clare, în ordinea folosirii: Membri → Cheltuieli
+  → Solduri / cine-cui-datorează. Pe desktop soldurile pot sta într-o coloană
+  laterală lipicioasă (sticky).
+- Container cu lățime maximă (`max-w-2xl` pe flux, mai lat unde e tabel).
+
+**Stări de UI (de tratat explicit peste tot)**
+- Loading: butoanele de submit devin disabled + text „Se salvează…";
+  liste cu skeleton simplu la prima încărcare.
+- Empty: mesaje utile în loc de tabel gol — „Niciun grup încă. Creează
+  primul grup." / „Nicio cheltuială. Adaugă una ca să vezi soldurile."
+- Error: mesaj inline sub formular (nu alert), cu textul erorii din server
+  action; câmpul invalid marcat.
+- Success: toast/mesaj discret care dispare, fără redirect brusc.
+
+**Componente & interacțiune**
+- Formularele de adăugare cheltuială / membru: inline pe pagină, nu modal;
+  se resetează după submit și păstrează focus pentru intrări repetate.
+- Confirmările de ștergere (din Faza 1): dialog cu numele entității în text,
+  buton de confirmare marcat ca acțiune distructivă (roșu).
+- Sume afișate formatat: `1.234,56 RON` (separator local RO), aliniate la
+  dreapta în tabele.
+- Solduri colorate: verde = i se datorează, roșu = datorează; lista de
+  transferuri cu format „A → B: sumă".
+
+**Vizual**
+- Paletă neutră + o culoare de accent pentru acțiuni primare; roșu rezervat
+  pentru distructiv, verde/roșu doar pentru semnul soldului.
+- Spațiere consistentă (scale Tailwind 4/6/8), colțuri rotunjite uniforme,
+  o singură umbră pentru carduri.
+- Dark mode dacă e ieftin (`dark:` + `prefers-color-scheme`).
+
+**Accesibilitate**
+- Toate inputurile cu `<label>` asociat; butoanele cu text real (nu doar icon).
+- Focus vizibil, navigare completă din tastatură, contrast AA.
+- Erorile legate de câmp prin `aria-describedby`.

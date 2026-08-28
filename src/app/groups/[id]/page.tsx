@@ -2,13 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { computeBalances, computeSettlement } from "@/lib/balances";
-import { formatBani } from "@/lib/money";
+import { baniToInput, formatBani } from "@/lib/money";
 import {
   addExpense,
   addMember,
+  addPayment,
   deleteExpense,
   deleteGroup,
   deleteMember,
+  deletePayment,
   updateGroup,
   updateMember,
 } from "@/app/actions";
@@ -35,27 +37,37 @@ export default async function GroupPage({
         orderBy: { createdAt: "desc" },
         include: { paidBy: true, participants: { include: { member: true } } },
       },
+      payments: {
+        orderBy: { createdAt: "desc" },
+        include: { from: true, to: true },
+      },
     },
   });
 
   if (!group) notFound();
 
-  const balances = computeBalances(group.members, group.expenses);
+  const balances = computeBalances(group.members, group.expenses, group.payments);
   const settlement = computeSettlement(balances);
 
-  // How each member is tied to expenses — drives whether they can be deleted.
+  // How each member is tied to expenses / payments — drives whether they can be deleted.
   const paidCount = new Map<string, number>();
   const partCount = new Map<string, number>();
+  const payCount = new Map<string, number>();
   for (const expense of group.expenses) {
     paidCount.set(expense.paidById, (paidCount.get(expense.paidById) ?? 0) + 1);
     for (const p of expense.participants) {
       partCount.set(p.memberId, (partCount.get(p.memberId) ?? 0) + 1);
     }
   }
+  for (const payment of group.payments) {
+    payCount.set(payment.fromId, (payCount.get(payment.fromId) ?? 0) + 1);
+    payCount.set(payment.toId, (payCount.get(payment.toId) ?? 0) + 1);
+  }
 
   const boundUpdateGroup = updateGroup.bind(null, group.id);
   const boundAddMember = addMember.bind(null, group.id);
   const boundAddExpense = addExpense.bind(null, group.id);
+  const boundAddPayment = addPayment.bind(null, group.id);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
@@ -110,7 +122,8 @@ export default async function GroupPage({
             {group.members.map((member) => {
               const paid = paidCount.get(member.id) ?? 0;
               const parts = partCount.get(member.id) ?? 0;
-              const locked = paid > 0 || parts > 0;
+              const pays = payCount.get(member.id) ?? 0;
+              const locked = paid > 0 || parts > 0 || pays > 0;
               const reasons = [
                 paid > 0 &&
                   `a plătit ${paid} ${paid === 1 ? "cheltuială" : "cheltuieli"}`,
@@ -118,6 +131,8 @@ export default async function GroupPage({
                   `participă la ${parts} ${
                     parts === 1 ? "cheltuială" : "cheltuieli"
                   }`,
+                pays > 0 &&
+                  `apare în ${pays} ${pays === 1 ? "plată" : "plăți"}`,
               ].filter(Boolean);
               const boundUpdateMember = updateMember.bind(
                 null,
@@ -219,16 +234,132 @@ export default async function GroupPage({
         )}
 
         {settlement.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
+          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
             <p className="font-medium">Cum se rezolvă:</p>
             {settlement.map((t, i) => (
-              <p key={i}>
-                <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
-                <span className="font-medium">{t.toName}</span>{" "}
-                {formatBani(t.amount)} RON
-              </p>
+              <div
+                key={i}
+                className="flex items-center justify-between gap-3"
+              >
+                <p>
+                  <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
+                  <span className="font-medium">{t.toName}</span>{" "}
+                  {formatBani(t.amount)} RON
+                </p>
+                <form action={boundAddPayment}>
+                  <input type="hidden" name="fromId" value={t.fromId} />
+                  <input type="hidden" name="toId" value={t.toId} />
+                  <input type="hidden" name="amount" value={baniToInput(t.amount)} />
+                  <button
+                    type="submit"
+                    className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1 text-xs font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+                  >
+                    marchează achitat
+                  </button>
+                </form>
+              </div>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 className="text-lg font-medium">Plăți</h2>
+        {group.payments.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Nicio plată înregistrată încă.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {group.payments.map((payment) => (
+              <li
+                key={payment.id}
+                className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
+              >
+                <span>
+                  <span className="font-medium">{payment.from.name}</span> →{" "}
+                  <span className="font-medium">{payment.to.name}</span>
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">
+                    {formatBani(payment.amount)} RON
+                  </span>
+                  <form
+                    action={deletePayment.bind(null, group.id, payment.id)}
+                  >
+                    <ConfirmButton
+                      message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatBani(
+                        payment.amount
+                      )} RON)?`}
+                      className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                    >
+                      șterge
+                    </ConfirmButton>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {group.members.length >= 2 && (
+          <form
+            action={boundAddPayment}
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          >
+            <label className="flex flex-1 flex-col gap-1 text-sm">
+              De la
+              <select
+                name="fromId"
+                required
+                defaultValue=""
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+              >
+                <option value="" disabled>
+                  —
+                </option>
+                {group.members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-1 flex-col gap-1 text-sm">
+              Către
+              <select
+                name="toId"
+                required
+                defaultValue=""
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+              >
+                <option value="" disabled>
+                  —
+                </option>
+                {group.members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-1 flex-col gap-1 text-sm">
+              Sumă (RON)
+              <input
+                type="text"
+                inputMode="decimal"
+                name="amount"
+                required
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+            >
+              Adaugă plată
+            </button>
+          </form>
         )}
       </section>
 
