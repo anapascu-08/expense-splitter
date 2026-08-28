@@ -9,6 +9,8 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
+    "check": "tsc --noEmit && eslint && vitest run",
+    "postinstall": "prisma generate",
     "db:seed": "node prisma/seed.mjs",
     "db:reset": "prisma migrate reset --force --skip-seed && node prisma/seed.mjs"
   },

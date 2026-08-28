@@ -71,6 +71,19 @@ După ce modifici `prisma/schema.prisma`, rulează
 > branch-ul `deploy-postgres`. Pe `main` se lucrează în continuare pe SQLite.
 > Vezi [`spec.md`](./spec.md) și [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
+## Teste & verificare
+
+Lucrăm test-first pe logica din `src/lib/` (runner: [Vitest](https://vitest.dev)).
+
+```bash
+npm test          # watch — bucla TDD
+npm run test:run  # o singură rulare
+npm run check     # tsc --noEmit && eslint && vitest run (rulează înainte de commit)
+```
+
+CI (`.github/workflows/ci.yml`) rulează `npm run check` + `npm run build` la
+fiecare push pe `main` și la fiecare PR.
+
 ## Structură
 
 - `src/app` — pagini (App Router) și server actions

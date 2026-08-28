@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Not a real database — only needed so `prisma generate` can resolve the
+      # datasource url from the schema. Nothing connects during CI.
+      DATABASE_URL: "file:./dev.db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci # runs `postinstall` -> `prisma generate`
+      - run: npm run check # tsc --noEmit && eslint && vitest run
+      - run: npm run build
