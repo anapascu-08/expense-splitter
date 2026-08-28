@@ -13,6 +13,12 @@ import {
   updateMember,
 } from "@/app/actions";
 import { ConfirmButton } from "@/app/confirm-button";
+import { ExpenseForm } from "@/app/expense-form";
+
+const SPLIT_LABEL: Record<string, string> = {
+  EXACT: "sume exacte",
+  PERCENT: "procente",
+};
 
 export default async function GroupPage({
   params,
@@ -244,6 +250,8 @@ export default async function GroupPage({
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     plătit de {expense.paidBy.name} · împărțit între{" "}
                     {expense.participants.map((p) => p.member.name).join(", ")}
+                    {expense.splitMode !== "EQUAL" &&
+                      ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -275,60 +283,11 @@ export default async function GroupPage({
       {group.members.length > 0 && (
         <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
           <h2 className="text-lg font-medium">Adaugă o cheltuială</h2>
-          <form action={boundAddExpense} className="flex flex-col gap-3">
-            <input
-              type="text"
-              name="description"
-              placeholder="Descriere (ex: cină)"
-              required
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-            />
-            <input
-              type="text"
-              inputMode="decimal"
-              name="amount"
-              placeholder="Sumă (RON)"
-              required
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-            />
-
-            <label className="flex flex-col gap-1 text-sm">
-              Plătit de
-              <select
-                name="paidById"
-                required
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-              >
-                {group.members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <fieldset className="flex flex-col gap-1 text-sm">
-              <legend className="mb-1">Împărțit între</legend>
-              {group.members.map((member) => (
-                <label key={member.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="participantIds"
-                    value={member.id}
-                    defaultChecked
-                  />
-                  {member.name}
-                </label>
-              ))}
-            </fieldset>
-
-            <button
-              type="submit"
-              className="self-start rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-            >
-              Adaugă cheltuială
-            </button>
-          </form>
+          <ExpenseForm
+            members={group.members}
+            action={boundAddExpense}
+            submitLabel="Adaugă cheltuială"
+          />
         </section>
       )}
     </main>

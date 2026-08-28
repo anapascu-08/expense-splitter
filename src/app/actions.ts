@@ -3,7 +3,46 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toBani } from "@/lib/money";
+import { toBani, toBasisPoints, FULL_PERCENT_BP } from "@/lib/money";
+
+type ParticipantWeight = { memberId: string; weight: number };
+
+// Read the split mode + per-participant weights from a form and validate them.
+// Returns null when the input is invalid (the UI blocks these cases already).
+function readSplit(
+  formData: FormData,
+  amount: number
+): { splitMode: string; participants: ParticipantWeight[] } | null {
+  const rawMode = String(formData.get("splitMode") ?? "EQUAL");
+  const splitMode = ["EQUAL", "EXACT", "PERCENT"].includes(rawMode)
+    ? rawMode
+    : "EQUAL";
+  const participantIds = formData.getAll("participantIds").map(String);
+  if (participantIds.length === 0) return null;
+
+  let participants: ParticipantWeight[];
+  if (splitMode === "EXACT") {
+    participants = participantIds.map((memberId) => ({
+      memberId,
+      weight: toBani(String(formData.get(`weight_${memberId}`) ?? "0")),
+    }));
+    const sum = participants.reduce((s, p) => s + p.weight, 0);
+    if (participants.some((p) => p.weight < 0) || sum !== amount) return null;
+  } else if (splitMode === "PERCENT") {
+    participants = participantIds.map((memberId) => ({
+      memberId,
+      weight: toBasisPoints(String(formData.get(`weight_${memberId}`) ?? "0")),
+    }));
+    const sum = participants.reduce((s, p) => s + p.weight, 0);
+    if (participants.some((p) => p.weight < 0) || sum !== FULL_PERCENT_BP) {
+      return null;
+    }
+  } else {
+    participants = participantIds.map((memberId) => ({ memberId, weight: 1 }));
+  }
+
+  return { splitMode, participants };
+}
 
 export async function createGroup(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -75,11 +114,10 @@ export async function addExpense(groupId: string, formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
-  const participantIds = formData.getAll("participantIds").map(String);
 
-  if (!description || amount <= 0 || !paidById || participantIds.length === 0) {
-    return;
-  }
+  if (!description || amount <= 0 || !paidById) return;
+  const split = readSplit(formData, amount);
+  if (!split) return;
 
   await prisma.expense.create({
     data: {
@@ -87,9 +125,8 @@ export async function addExpense(groupId: string, formData: FormData) {
       description,
       amount,
       paidById,
-      participants: {
-        create: participantIds.map((memberId) => ({ memberId })),
-      },
+      splitMode: split.splitMode,
+      participants: { create: split.participants },
     },
   });
 
@@ -104,11 +141,10 @@ export async function updateExpense(
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
-  const participantIds = formData.getAll("participantIds").map(String);
 
-  if (!description || amount <= 0 || !paidById || participantIds.length === 0) {
-    return;
-  }
+  if (!description || amount <= 0 || !paidById) return;
+  const split = readSplit(formData, amount);
+  if (!split) return;
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId },
@@ -122,9 +158,10 @@ export async function updateExpense(
       description,
       amount,
       paidById,
+      splitMode: split.splitMode,
       participants: {
         deleteMany: {},
-        create: participantIds.map((memberId) => ({ memberId })),
+        create: split.participants,
       },
     },
   });

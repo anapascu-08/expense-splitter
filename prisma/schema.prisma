@@ -35,6 +35,12 @@ model Expense {
   amount      Int
   createdAt   DateTime @default(now())
 
+  // How `amount` is divided among participants:
+  //   EQUAL   — split equally (participant.weight ignored / all 1)
+  //   EXACT   — participant.weight is the exact amount owed, in bani; sum == amount
+  //   PERCENT — participant.weight is basis points (percent * 100); sum == 10000
+  splitMode String @default("EQUAL")
+
   groupId String
   group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
@@ -50,6 +56,9 @@ model ExpenseParticipant {
 
   memberId String
   member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  // Meaning depends on Expense.splitMode (see above). 1 for EQUAL.
+  weight Int @default(1)
 
   @@id([expenseId, memberId])
 }

@@ -1,8 +1,31 @@
 export type ExpenseForBalance = {
   amount: number;
   paidById: string;
-  participants: { memberId: string }[];
+  participants: { memberId: string; weight: number }[];
 };
+
+// Split `total` (bani) proportionally to `weights`, returning whole bani that
+// sum to exactly `total`. Leftover bani from integer division go to the
+// participants with the largest fractional remainder (ties broken by order).
+// EQUAL split is the case where every weight is 1.
+export function splitAmount(total: number, weights: number[]): number[] {
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  if (totalWeight <= 0) return weights.map(() => 0);
+
+  const shares = weights.map((w) => Math.floor((total * w) / totalWeight));
+  let leftover = total - shares.reduce((sum, s) => sum + s, 0);
+
+  const byRemainder = weights
+    .map((w, i) => ({ i, remainder: (total * w) % totalWeight }))
+    .sort((a, b) => b.remainder - a.remainder || a.i - b.i);
+
+  for (let k = 0; k < byRemainder.length && leftover > 0; k += 1) {
+    shares[byRemainder[k].i] += 1;
+    leftover -= 1;
+  }
+
+  return shares;
+}
 
 export type MemberBalance = {
   memberId: string;
@@ -34,20 +57,16 @@ export function computeBalances(
   for (const expense of expenses) {
     paid.set(expense.paidById, (paid.get(expense.paidById) ?? 0) + expense.amount);
 
-    const participantCount = expense.participants.length;
-    if (participantCount === 0) continue;
+    if (expense.participants.length === 0) continue;
 
-    const baseShare = Math.floor(expense.amount / participantCount);
-    let remainder = expense.amount - baseShare * participantCount;
+    const shares = splitAmount(
+      expense.amount,
+      expense.participants.map((p) => p.weight)
+    );
 
-    for (const participant of expense.participants) {
-      let share = baseShare;
-      if (remainder > 0) {
-        share += 1;
-        remainder -= 1;
-      }
-      owed.set(participant.memberId, (owed.get(participant.memberId) ?? 0) + share);
-    }
+    expense.participants.forEach((participant, i) => {
+      owed.set(participant.memberId, (owed.get(participant.memberId) ?? 0) + shares[i]);
+    });
   }
 
   return members.map((m) => {

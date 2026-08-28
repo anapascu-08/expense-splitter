@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { baniToInput } from "@/lib/money";
+import { baniToInput, basisPointsToInput } from "@/lib/money";
 import { updateExpense } from "@/app/actions";
+import { ExpenseForm, type SplitMode } from "@/app/expense-form";
 
 export default async function EditExpensePage({
   params,
@@ -21,7 +22,14 @@ export default async function EditExpensePage({
 
   if (!expense) notFound();
 
-  const participantIds = new Set(expense.participants.map((p) => p.memberId));
+  const splitMode = expense.splitMode as SplitMode;
+  const weights: Record<string, string> = {};
+  for (const p of expense.participants) {
+    if (splitMode === "EXACT") weights[p.memberId] = baniToInput(p.weight);
+    else if (splitMode === "PERCENT")
+      weights[p.memberId] = basisPointsToInput(p.weight);
+  }
+
   const boundUpdateExpense = updateExpense.bind(null, id, expense.id);
 
   return (
@@ -36,71 +44,20 @@ export default async function EditExpensePage({
         <h1 className="mt-1 text-2xl font-semibold">Editează cheltuiala</h1>
       </header>
 
-      <form action={boundUpdateExpense} className="flex flex-col gap-3">
-        <input
-          type="text"
-          name="description"
-          defaultValue={expense.description}
-          placeholder="Descriere (ex: cină)"
-          required
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-        />
-        <input
-          type="text"
-          inputMode="decimal"
-          name="amount"
-          defaultValue={baniToInput(expense.amount)}
-          placeholder="Sumă (RON)"
-          required
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-        />
-
-        <label className="flex flex-col gap-1 text-sm">
-          Plătit de
-          <select
-            name="paidById"
-            defaultValue={expense.paidById}
-            required
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
-          >
-            {expense.group.members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <fieldset className="flex flex-col gap-1 text-sm">
-          <legend className="mb-1">Împărțit între</legend>
-          {expense.group.members.map((member) => (
-            <label key={member.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="participantIds"
-                value={member.id}
-                defaultChecked={participantIds.has(member.id)}
-              />
-              {member.name}
-            </label>
-          ))}
-        </fieldset>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-          >
-            Salvează
-          </button>
-          <Link
-            href={`/groups/${id}`}
-            className="text-sm text-gray-500 hover:underline dark:text-gray-400"
-          >
-            Anulează
-          </Link>
-        </div>
-      </form>
+      <ExpenseForm
+        members={expense.group.members}
+        action={boundUpdateExpense}
+        submitLabel="Salvează"
+        cancelHref={`/groups/${id}`}
+        defaults={{
+          description: expense.description,
+          amount: baniToInput(expense.amount),
+          paidById: expense.paidById,
+          splitMode,
+          participantIds: expense.participants.map((p) => p.memberId),
+          weights,
+        }}
+      />
     </main>
   );
 }
