@@ -12,3 +12,8 @@ export function formatBani(bani: number): string {
     maximumFractionDigits: 2,
   });
 }
+
+// Plain "12.34" string for pre-filling a number/decimal input (round-trips through toBani).
+export function baniToInput(bani: number): string {
+  return (bani / 100).toFixed(2);
+}

@@ -9,7 +9,7 @@ urmează) sunt documentate în [`spec.md`](./spec.md).
 ## Stack
 - [Next.js](https://nextjs.org) (App Router) + TypeScript
 - Tailwind CSS
-- Prisma ORM + SQLite
+- Prisma ORM + SQLite (fișier local, fără server de bază de date)
 
 ## Pornire locală
 
@@ -24,6 +24,33 @@ Aplicația pornește pe [http://localhost:3000](http://localhost:3000).
 
 Dacă ai deja `node_modules`, `.env` și baza de date create (de exemplu
 pe mașina pe care ai dezvoltat inițial), e suficient `npm run dev`.
+
+### Baza de date SQLite
+
+Nu ai nevoie de Postgres sau de alt server local — baza de date e un
+singur fișier.
+
+- `.env` conține `DATABASE_URL="file:./dev.db"` (relativ la folderul
+  `prisma/`), deci fișierul e `prisma/dev.db`.
+- `npx prisma migrate dev` creează `prisma/dev.db`, aplică migrațiile din
+  `prisma/migrations/` și regenerează Prisma Client în `src/generated/prisma`.
+- `prisma/dev.db` e în `.gitignore` — fiecare dezvoltator își are propria
+  copie locală, cu propriile date de test.
+
+Comenzi utile:
+
+```bash
+npx prisma studio            # UI web pentru inspectat/editat datele
+npx prisma migrate reset     # șterge dev.db, reaplică migrațiile de la zero
+npx prisma generate          # regenerează doar Prisma Client (după pull cu schema schimbată)
+```
+
+După ce modifici `prisma/schema.prisma`, rulează
+`npx prisma migrate dev --name <descriere>` ca să creezi o migrație nouă.
+
+> Postgres (Neon) se folosește doar la deploy pe Vercel și e izolat pe
+> branch-ul `deploy-postgres`. Pe `main` se lucrează în continuare pe SQLite.
+> Vezi [`spec.md`](./spec.md) și [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## Structură
 

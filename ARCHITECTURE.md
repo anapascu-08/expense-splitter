@@ -51,8 +51,10 @@ src/
   app/
     layout.tsx            # root layout: fonturi Geist, <html>/<body>, metadata
     page.tsx              # "/"          — listă grupuri + creare grup
-    groups/[id]/page.tsx  # "/groups/:id" — membri, solduri, settle-up, cheltuieli
-    actions.ts            # Server Actions: createGroup, addMember, addExpense, deleteExpense
+    groups/[id]/page.tsx  # "/groups/:id" — membri (editare/ștergere), solduri, settle-up, cheltuieli
+    groups/[id]/expenses/[expenseId]/edit/page.tsx  # formular editare cheltuială
+    confirm-button.tsx    # client component: confirm() înainte de submit-ul unei ștergeri
+    actions.ts            # Server Actions: create/update/deleteGroup, add/update/deleteMember, add/update/deleteExpense
     globals.css           # Tailwind + variabile temă
   lib/
     prisma.ts             # singleton PrismaClient (evită connection leak în dev)
@@ -108,9 +110,12 @@ sequenceDiagram
   A-->>B: redirect / re-randare pagină cu datele noi
 ```
 
-`createGroup` face `redirect()` către pagina noului grup; celelalte acțiuni
-fac `revalidatePath()` ca să reîmprospăteze pagina curentă. Input invalid ⇒
-`return` silențios (fără feedback de eroare încă — vezi Faza 1 din spec).
+`createGroup` face `redirect()` către pagina noului grup, `deleteGroup` către
+`/`, `updateExpense` înapoi către pagina grupului; celelalte acțiuni fac doar
+`revalidatePath()` ca să reîmprospăteze pagina curentă. Input invalid ⇒
+`return` silențios (formularele au `required` în HTML, deci UI-ul prinde
+majoritatea cazurilor). Ștergerea unui membru implicat în cheltuieli e
+blocată atât în UI (butonul e înlocuit de un mesaj) cât și în acțiune.
 
 ## Modelul de date
 
@@ -154,7 +159,9 @@ erDiagram
 - `onDelete: Cascade` pe `groupId` și pe legăturile din `ExpenseParticipant`:
   ștergerea unui grup / a unei cheltuieli curăță automat rândurile dependente.
   Excepție: `Expense.paidBy` e `onDelete: Restrict` — un membru care a plătit
-  o cheltuială nu poate fi șters (relevant pentru Faza 1).
+  o cheltuială nu poate fi șters. `deleteMember` verifică în plus și
+  participările (`ExpenseParticipant` are `onDelete: Cascade` pe `memberId`,
+  deci fără verificare ștergerea ar re-împărți silențios cheltuieli vechi).
 
 ## Logica de calcul (`src/lib/balances.ts`)
 
@@ -209,7 +216,8 @@ flowchart LR
 ## Limitări cunoscute / decizii amânate
 
 - Fără autentificare — oricine cu linkul unui grup îl poate edita (Faza 4).
-- Validare minimală în Server Actions, fără mesaje de eroare în UI (Faza 1).
+- Validare minimală în Server Actions, fără mesaje de eroare inline în UI
+  (dincolo de `required` HTML și de blocarea ștergerii unui membru implicat).
 - Doar împărțire egală; fără sume/procente custom (Faza 2).
 - Fără istoric de plăți — decontarea e doar calculată, nu se poate marca o
   datorie ca achitată (Faza 3).
