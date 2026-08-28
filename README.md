@@ -17,10 +17,29 @@ urmează) sunt documentate în [`spec.md`](./spec.md).
 npm install
 cp .env.example .env
 npx prisma migrate dev
+npm run db:seed        # opțional: conturi + grup demo pentru testare
 npm run dev
 ```
 
 Aplicația pornește pe [http://localhost:3000](http://localhost:3000).
+
+### Conturi de test
+
+`npm run db:seed` șterge datele din aplicație și inserează fixtures pentru
+testat autentificarea și accesul multi-utilizator (parola pentru toate:
+`password123`):
+
+| Cont | Rol |
+|---|---|
+| `alice@test.dev` | owner al grupului „Vacanța la mare" (cu cheltuieli + o plată) |
+| `bob@test.dev` | membru în grup |
+| `carol@test.dev` | fără grup — testează invitația: login ca Carol, apoi deschide `http://localhost:3000/invite/seed-invite-token` |
+
+Pentru mai multe conturi logate simultan folosește ferestre separate
+(normală + incognito) sau profile de browser diferite — sesiunea e un
+cookie per context de browser.
+
+`npm run db:reset` face drop la `dev.db`, reaplică migrațiile și rulează seed-ul.
 
 Dacă ai deja `node_modules`, `.env` și baza de date create (de exemplu
 pe mașina pe care ai dezvoltat inițial), e suficient `npm run dev`.

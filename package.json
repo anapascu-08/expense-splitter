@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "db:seed": "node prisma/seed.mjs",
+    "db:reset": "prisma migrate reset --force --skip-seed && node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
