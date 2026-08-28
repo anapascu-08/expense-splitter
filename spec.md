@@ -73,13 +73,11 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Ștergere cheltuială
 - Calcul automat solduri + listă minimă de transferuri (settle-up)
 
-### Faza 1 — Editare & corectură ✅ (implementată)
-- Editare cheltuială existentă (descriere, sumă, plătitor, participanți) —
-  pagină dedicată `/groups/[id]/expenses/[expenseId]/edit`
-- Editare nume membru; ștergere membru doar dacă nu e implicat în nicio
-  cheltuială (ca plătitor sau participant) — altfel e blocat cu mesaj explicativ
-- Editare nume grup, ștergere grup (cascadă pe membri + cheltuieli)
-- Confirmare (`confirm()`) înainte de fiecare ștergere
+### Faza 1 — Editare & corectură
+- Editare cheltuială existentă (descriere, sumă, plătitor, participanți)
+- Editare/ștergere membru dintr-un grup (cu grijă la cheltuielile existente)
+- Editare nume grup, ștergere grup
+- Confirmare înainte de ștergere (momentan ștergerea e imediată, fără confirmare)
 
 ### Faza 2 — Împărțire flexibilă
 - Sume custom per participant (nu doar împărțire egală)
