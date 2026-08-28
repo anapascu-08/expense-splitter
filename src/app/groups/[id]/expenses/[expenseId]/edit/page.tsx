@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { baniToInput, basisPointsToInput } from "@/lib/money";
+import { baniToInput, basisPointsToInput, sharesToInput } from "@/lib/money";
 import { updateExpense } from "@/app/actions";
 import { ExpenseForm, type SplitMode } from "@/app/expense-form";
 
@@ -28,6 +28,8 @@ export default async function EditExpensePage({
     if (splitMode === "EXACT") weights[p.memberId] = baniToInput(p.weight);
     else if (splitMode === "PERCENT")
       weights[p.memberId] = basisPointsToInput(p.weight);
+    else if (splitMode === "SHARES")
+      weights[p.memberId] = sharesToInput(p.weight);
   }
 
   const boundUpdateExpense = updateExpense.bind(null, id, expense.id);

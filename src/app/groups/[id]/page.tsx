@@ -20,6 +20,7 @@ import { ExpenseForm } from "@/app/expense-form";
 const SPLIT_LABEL: Record<string, string> = {
   EXACT: "sume exacte",
   PERCENT: "procente",
+  SHARES: "cote",
 };
 
 export default async function GroupPage({

@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatBani } from "@/lib/money";
+import { splitAmount } from "@/lib/balances";
 
-export type SplitMode = "EQUAL" | "EXACT" | "PERCENT";
+export type SplitMode = "EQUAL" | "EXACT" | "PERCENT" | "SHARES";
 
 export type ExpenseFormDefaults = {
   description: string;
@@ -38,6 +39,13 @@ const MODE_LABELS: Record<SplitMode, string> = {
   EQUAL: "În mod egal",
   EXACT: "Sume exacte (RON)",
   PERCENT: "Procente (%)",
+  SHARES: "Cote (shares)",
+};
+
+const WEIGHT_SUFFIX: Record<Exclude<SplitMode, "EQUAL">, string> = {
+  EXACT: "RON",
+  PERCENT: "%",
+  SHARES: "cote",
 };
 
 export function ExpenseForm({
@@ -69,7 +77,7 @@ export function ExpenseForm({
   const participants = members.filter((m) => checked.has(m.id));
 
   const allocation = useMemo(() => {
-    if (splitMode === "EQUAL") return null;
+    if (splitMode === "EQUAL" || splitMode === "SHARES") return null;
     const unit = splitMode === "PERCENT" ? 10000 : amountBani;
     const allocated = participants.reduce(
       (sum, m) => sum + Math.round(parseNum(weights[m.id] ?? "") * 100),
@@ -78,9 +86,31 @@ export function ExpenseForm({
     return { unit, allocated, diff: allocated - unit };
   }, [splitMode, participants, weights, amountBani]);
 
+  // SHARES has no target sum — any positive total works. Show a preview of the
+  // per-share value instead of a match/mismatch indicator. Every participant
+  // still needs at least one whole share (matches the server-side guard).
+  const shareCounts = participants.map((m) =>
+    Math.round(parseNum(weights[m.id] ?? ""))
+  );
+  const sharesTotal =
+    splitMode === "SHARES"
+      ? shareCounts.reduce((sum, w) => sum + Math.max(0, w), 0)
+      : 0;
+  const sharesAllValid =
+    splitMode === "SHARES" &&
+    participants.length > 0 &&
+    shareCounts.every((w) => w >= 1);
+
   const mismatch =
-    allocation !== null &&
-    (allocation.diff !== 0 || (splitMode === "EXACT" && amountBani <= 0));
+    (allocation !== null &&
+      (allocation.diff !== 0 || (splitMode === "EXACT" && amountBani <= 0))) ||
+    (splitMode === "SHARES" && (!sharesAllValid || amountBani <= 0));
+
+  // Per-participant preview for SHARES: amount split proportionally to shares.
+  const sharesPreview =
+    sharesAllValid && amountBani > 0
+      ? splitAmount(amountBani, shareCounts)
+      : null;
 
   function toggle(id: string) {
     setChecked((prev) => {
@@ -168,7 +198,7 @@ export function ExpenseForm({
                 <span className="flex items-center gap-1">
                   <input
                     type="text"
-                    inputMode="decimal"
+                    inputMode={splitMode === "SHARES" ? "numeric" : "decimal"}
                     name={`weight_${member.id}`}
                     value={weights[member.id] ?? ""}
                     onChange={(e) =>
@@ -178,10 +208,10 @@ export function ExpenseForm({
                       }))
                     }
                     className={`${inputClass} w-24 text-right`}
-                    placeholder="0"
+                    placeholder={splitMode === "SHARES" ? "1" : "0"}
                   />
                   <span className="text-gray-500 dark:text-gray-400">
-                    {splitMode === "PERCENT" ? "%" : "RON"}
+                    {WEIGHT_SUFFIX[splitMode]}
                   </span>
                 </span>
               )}
@@ -212,6 +242,23 @@ export function ExpenseForm({
               : splitMode === "PERCENT"
                 ? ` — mai rămâne ${(-allocation.diff / 100).toFixed(2)}%`
                 : ` — mai rămâne ${formatBani(-allocation.diff)} RON`}
+        </p>
+      )}
+
+      {splitMode === "SHARES" && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {sharesAllValid
+            ? `${sharesTotal} ${sharesTotal === 1 ? "cotă" : "cote"} în total`
+            : "Pune cel puțin o cotă (număr întreg) pentru fiecare participant."}
+          {sharesPreview && (
+            <>
+              {" — "}
+              {participants
+                .map((m, i) => `${m.name}: ${formatBani(sharesPreview[i])}`)
+                .join(" · ")}{" "}
+              RON
+            </>
+          )}
         </p>
       )}
 

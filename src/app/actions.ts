@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toBani, toBasisPoints, FULL_PERCENT_BP } from "@/lib/money";
+import { toBani, toBasisPoints, toShares, FULL_PERCENT_BP } from "@/lib/money";
 
 type ParticipantWeight = { memberId: string; weight: number };
 
@@ -14,7 +14,7 @@ function readSplit(
   amount: number
 ): { splitMode: string; participants: ParticipantWeight[] } | null {
   const rawMode = String(formData.get("splitMode") ?? "EQUAL");
-  const splitMode = ["EQUAL", "EXACT", "PERCENT"].includes(rawMode)
+  const splitMode = ["EQUAL", "EXACT", "PERCENT", "SHARES"].includes(rawMode)
     ? rawMode
     : "EQUAL";
   const participantIds = formData.getAll("participantIds").map(String);
@@ -35,6 +35,16 @@ function readSplit(
     }));
     const sum = participants.reduce((s, p) => s + p.weight, 0);
     if (participants.some((p) => p.weight < 0) || sum !== FULL_PERCENT_BP) {
+      return null;
+    }
+  } else if (splitMode === "SHARES") {
+    participants = participantIds.map((memberId) => ({
+      memberId,
+      weight: toShares(String(formData.get(`weight_${memberId}`) ?? "0")),
+    }));
+    // Every participant needs at least one whole share; the amount is then
+    // split proportionally (see splitAmount in lib/balances).
+    if (participants.some((p) => !Number.isInteger(p.weight) || p.weight < 1)) {
       return null;
     }
   } else {

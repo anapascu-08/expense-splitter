@@ -30,3 +30,15 @@ export function basisPointsToInput(bp: number): string {
 }
 
 export const FULL_PERCENT_BP = 10000;
+
+// Shares are small whole numbers: a participant with 2 shares owes twice as much
+// as one with 1. Anything non-integer is rounded to the nearest whole share.
+export function toShares(input: string): number {
+  const value = Number.parseFloat(input.replace(",", "."));
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value);
+}
+
+export function sharesToInput(shares: number): string {
+  return String(shares);
+}

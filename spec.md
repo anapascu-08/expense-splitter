@@ -79,14 +79,18 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Editare nume grup, ștergere grup
 - Confirmare înainte de ștergere (momentan ștergerea e imediată, fără confirmare)
 
-### Faza 2 — Împărțire flexibilă
-- Sume custom per participant (nu doar împărțire egală)
-- Împărțire pe procente sau pe cote (shares)
-- Validare: suma părților trebuie să fie egală cu totalul cheltuielii
-- UI/UX: selector de mod (egal / sume / procente / cote) în formularul de
-  cheltuială; câmp per participant care apare doar pentru modul ales;
-  indicator live „alocat X / total Y" cu diferența evidențiată roșu până
-  când se închide la zero; submit blocat cât timp nu se potrivește.
+### Faza 2 — Împărțire flexibilă ✅ (implementată)
+- Sume custom per participant (nu doar împărțire egală) — mod `EXACT`
+- Împărțire pe procente — mod `PERCENT`
+- Împărțire pe cote (shares) — mod `SHARES`: fiecare participant primește un
+  număr întreg de cote, iar suma se împarte proporțional (fără sumă fixă)
+- Validare: la `EXACT`/`PERCENT` suma părților trebuie să fie egală cu totalul
+  cheltuielii; la `SHARES` fiecare participant are minim o cotă
+- UI/UX: selector de mod (egal / sume exacte / procente / cote) în formularul
+  de cheltuială; câmp per participant care apare doar pentru modul ales;
+  pentru `EXACT`/`PERCENT` indicator live „alocat X / total Y" cu diferența
+  evidențiată roșu până când se închide la zero; pentru `SHARES` preview cu
+  cât iese fiecare; submit blocat cât timp nu se potrivește.
 
 ### Faza 3 — Plăți & decontări persistate
 - Model `Payment` (cine a plătit cui, cât, când) — momentan settle-up e doar

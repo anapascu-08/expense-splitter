@@ -42,6 +42,8 @@ model Expense {
   //   EQUAL   — split equally (participant.weight ignored / all 1)
   //   EXACT   — participant.weight is the exact amount owed, in bani; sum == amount
   //   PERCENT — participant.weight is basis points (percent * 100); sum == 10000
+  //   SHARES  — participant.weight is a whole share count (>= 1); amount is split
+  //             proportionally to the shares, no fixed sum
   splitMode String @default("EQUAL")
 
   groupId String
