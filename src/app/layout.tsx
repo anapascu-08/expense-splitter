@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/app/site-header";
@@ -18,7 +19,10 @@ export const metadata: Metadata = {
   description: "Împarte cheltuielile cu prietenii, fără bătăi de cap.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Explicit type rather than Next's generated `LayoutProps` global, which only
+// exists after `next dev`/`next build` writes .next/types — so `tsc` in CI
+// (which runs before the build) can't see it.
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
