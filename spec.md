@@ -129,7 +129,15 @@ Rămas pe viitor: reset parolă, verificare email, OAuth, claiming efectiv al
 unui slot `Member` la accept invitație.
 
 ### Faza 5 — Polish & extra
-- Multiple valute
+- ✅ Multiple valute — fiecare grup are o valută de bază (`Group.baseCurrency`,
+  aleasă la creare, fixă după aceea); fiecare cheltuială are propria valută
+  (`Expense.currency`) plus un curs manual salvat la introducere
+  (`Expense.rateMicros` = unități de bază per 1 unitate străină × 1_000_000).
+  Set fix de coduri în `src/lib/currencies.ts`. Soldurile, settle-up-ul,
+  rezumatul și export-urile lucrează toate în valuta de bază — motorul de
+  balances primește doar sume convertite prin `convertToBase` (`src/lib/money.ts`,
+  test-first). Formularul de cheltuială arată câmpul de curs doar când valuta
+  diferă de baza grupului, cu preview live „X ≈ Y".
 - ✅ Categorii de cheltuieli — set fix de categorii (mâncare, transport,
   cazare, băuturi, activități, cumpărături, altele) în `src/lib/categories.ts`;
   câmp `Expense.category` (nullable); selector în formular; iconiță + etichetă

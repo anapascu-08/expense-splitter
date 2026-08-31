@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { formatBani } from "@/lib/money";
+import {
+  formatBani,
+  formatMoney,
+  convertToBase,
+  toRateMicros,
+  RATE_SCALE,
+} from "@/lib/money";
 import { splitAmount } from "@/lib/balances";
 import { EXPENSE_CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
+import { CURRENCY_CODES, currencySymbol } from "@/lib/currencies";
 
 export type SplitMode = "EQUAL" | "EXACT" | "PERCENT" | "SHARES";
 
@@ -14,9 +21,13 @@ export type ExpenseFormDefaults = {
   paidById: string;
   // "" = no category; otherwise one of the slugs in lib/categories.
   category: string;
+  // Currency code the amount is in, and the rate to the group's base currency
+  // ("" when they're the same currency — the field is hidden then).
+  currency: string;
+  rate: string;
   splitMode: SplitMode;
   participantIds: string[];
-  // memberId -> input string; RON for EXACT, percent for PERCENT
+  // memberId -> input string; expense currency for EXACT, percent for PERCENT
   weights: Record<string, string>;
 };
 
@@ -26,6 +37,7 @@ type Props = {
   members: Member[];
   action: (formData: FormData) => void;
   submitLabel: string;
+  baseCurrency: string;
   cancelHref?: string;
   defaults?: ExpenseFormDefaults;
 };
@@ -38,23 +50,20 @@ function parseNum(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-const MODE_LABELS: Record<SplitMode, string> = {
-  EQUAL: "În mod egal",
-  EXACT: "Sume exacte (RON)",
-  PERCENT: "Procente (%)",
-  SHARES: "Cote (shares)",
-};
-
-const WEIGHT_SUFFIX: Record<Exclude<SplitMode, "EQUAL">, string> = {
-  EXACT: "RON",
-  PERCENT: "%",
-  SHARES: "cote",
-};
+function modeLabels(currencySym: string): Record<SplitMode, string> {
+  return {
+    EQUAL: "În mod egal",
+    EXACT: `Sume exacte (${currencySym})`,
+    PERCENT: "Procente (%)",
+    SHARES: "Cote (shares)",
+  };
+}
 
 export function ExpenseForm({
   members,
   action,
   submitLabel,
+  baseCurrency,
   cancelHref,
   defaults,
 }: Props) {
@@ -64,6 +73,18 @@ export function ExpenseForm({
     defaults?.paidById ?? members[0]?.id ?? ""
   );
   const [category, setCategory] = useState(defaults?.category ?? "");
+  const [currency, setCurrency] = useState(
+    defaults?.currency || baseCurrency
+  );
+  const [rate, setRate] = useState(defaults?.rate ?? "");
+  const isForeign = currency !== baseCurrency;
+  const curSym = currencySymbol(currency);
+  const MODE_LABELS = modeLabels(curSym);
+  const WEIGHT_SUFFIX: Record<Exclude<SplitMode, "EQUAL">, string> = {
+    EXACT: curSym,
+    PERCENT: "%",
+    SHARES: "cote",
+  };
   const [splitMode, setSplitMode] = useState<SplitMode>(
     defaults?.splitMode ?? "EQUAL"
   );
@@ -80,7 +101,16 @@ export function ExpenseForm({
   const amountBani = Math.round(parseNum(amount) * 100);
   const participants = members.filter((m) => checked.has(m.id));
 
-  const allocation = useMemo(() => {
+  const rateMicros = isForeign ? toRateMicros(rate) : RATE_SCALE;
+  const convertedBani =
+    amountBani > 0 && rateMicros > 0
+      ? convertToBase(amountBani, rateMicros)
+      : 0;
+  // A foreign currency needs a positive rate before the expense can be saved.
+  const rateMissing = isForeign && rateMicros <= 0;
+
+  // React Compiler memoizes this automatically — no useMemo needed.
+  const allocation = (() => {
     if (splitMode === "EQUAL" || splitMode === "SHARES") return null;
     const unit = splitMode === "PERCENT" ? 10000 : amountBani;
     const allocated = participants.reduce(
@@ -88,7 +118,7 @@ export function ExpenseForm({
       0
     );
     return { unit, allocated, diff: allocated - unit };
-  }, [splitMode, participants, weights, amountBani]);
+  })();
 
   // SHARES has no target sum — any positive total works. Show a preview of the
   // per-share value instead of a match/mismatch indicator. Every participant
@@ -106,6 +136,7 @@ export function ExpenseForm({
     shareCounts.every((w) => w >= 1);
 
   const mismatch =
+    rateMissing ||
     (allocation !== null &&
       (allocation.diff !== 0 || (splitMode === "EXACT" && amountBani <= 0))) ||
     (splitMode === "SHARES" && (!sharesAllValid || amountBani <= 0));
@@ -136,16 +167,68 @@ export function ExpenseForm({
         onChange={(e) => setDescription(e.target.value)}
         className={inputClass}
       />
-      <input
-        type="text"
-        inputMode="decimal"
-        name="amount"
-        placeholder="Sumă (RON)"
-        required
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        className={inputClass}
-      />
+      <div className="flex gap-2">
+        <input
+          type="text"
+          inputMode="decimal"
+          name="amount"
+          placeholder={`Sumă (${curSym})`}
+          required
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className={`${inputClass} flex-1`}
+        />
+        <label className="flex flex-col text-sm">
+          <span className="sr-only">Valută</span>
+          <select
+            name="currency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className={inputClass}
+            aria-label="Valută"
+          >
+            {CURRENCY_CODES.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {isForeign && (
+        <label className="flex flex-col gap-1 text-sm">
+          Curs: 1 {currency} = ? {baseCurrency}
+          <input
+            type="text"
+            inputMode="decimal"
+            name="rate"
+            required
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            className={inputClass}
+            placeholder="ex: 4,9823"
+            aria-describedby="rate-hint"
+          />
+          <span
+            id="rate-hint"
+            className={
+              rateMissing
+                ? "text-xs text-red-600 dark:text-red-400"
+                : "text-xs text-gray-500 dark:text-gray-400"
+            }
+          >
+            {rateMissing
+              ? "Pune un curs pozitiv ca să poți salva."
+              : amountBani > 0
+                ? `${formatMoney(amountBani, currency)} ≈ ${formatMoney(
+                    convertedBani,
+                    baseCurrency
+                  )}`
+                : `Soldurile grupului sunt în ${baseCurrency}.`}
+          </span>
+        </label>
+      )}
 
       <label className="flex flex-col gap-1 text-sm">
         Plătit de
@@ -253,16 +336,16 @@ export function ExpenseForm({
             ? `Alocat ${(allocation.allocated / 100).toFixed(2)}% / 100.00%`
             : `Alocat ${formatBani(allocation.allocated)} / ${formatBani(
                 Math.max(amountBani, 0)
-              )} RON`}
+              )} ${curSym}`}
           {allocation.diff === 0
             ? " ✓"
             : allocation.diff > 0
               ? splitMode === "PERCENT"
                 ? ` — depășit cu ${(allocation.diff / 100).toFixed(2)}%`
-                : ` — depășit cu ${formatBani(allocation.diff)} RON`
+                : ` — depășit cu ${formatBani(allocation.diff)} ${curSym}`
               : splitMode === "PERCENT"
                 ? ` — mai rămâne ${(-allocation.diff / 100).toFixed(2)}%`
-                : ` — mai rămâne ${formatBani(-allocation.diff)} RON`}
+                : ` — mai rămâne ${formatBani(-allocation.diff)} ${curSym}`}
         </p>
       )}
 
@@ -277,7 +360,7 @@ export function ExpenseForm({
               {participants
                 .map((m, i) => `${m.name}: ${formatBani(sharesPreview[i])}`)
                 .join(" · ")}{" "}
-              RON
+              {curSym}
             </>
           )}
         </p>

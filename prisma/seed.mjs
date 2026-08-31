@@ -64,6 +64,21 @@ const expenses = [
     ],
   },
   {
+    id: "seed_exp_muzeu",
+    description: "Bilete muzeu",
+    amount: 4500, // 45.00 EUR
+    currency: "EUR",
+    rateMicros: 4982300, // 1 EUR = 4.9823 RON at entry time
+    category: "activitati",
+    splitMode: "EQUAL",
+    paidById: "seed_m_alice",
+    parts: [
+      ["seed_m_alice", 1],
+      ["seed_m_bob", 1],
+      ["seed_m_cristi", 1],
+    ],
+  },
+  {
     id: "seed_exp_benzina",
     description: "Benzină",
     amount: 12000,
@@ -146,11 +161,13 @@ stmts.push(
 // --- expenses + participants ---
 for (const e of expenses) {
   stmts.push(
-    `INSERT INTO "Expense" ("id","description","amount","createdAt","category","splitMode","groupId","paidById") VALUES (${q(
+    `INSERT INTO "Expense" ("id","description","amount","currency","rateMicros","createdAt","category","splitMode","groupId","paidById") VALUES (${q(
       e.id
-    )}, ${q(e.description)}, ${e.amount}, ${q(iso(now))}, ${q(e.category)}, ${q(
-      e.splitMode
-    )}, ${q(groupId)}, ${q(e.paidById)});`
+    )}, ${q(e.description)}, ${e.amount}, ${q(e.currency ?? "RON")}, ${
+      e.rateMicros ?? 1000000
+    }, ${q(iso(now))}, ${q(e.category)}, ${q(e.splitMode)}, ${q(groupId)}, ${q(
+      e.paidById
+    )});`
   );
   for (const [memberId, weight] of e.parts) {
     stmts.push(

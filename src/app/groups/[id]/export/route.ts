@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireGroupAccess } from "@/lib/access";
 import { computeBalances } from "@/lib/balances";
+import { convertToBase } from "@/lib/money";
 import { expensesToCsv, balancesToCsv } from "@/lib/csv";
 import { expensesToPdf, balancesToPdf } from "@/lib/pdf";
 
@@ -42,24 +43,31 @@ export async function GET(
   });
   if (!group) return new Response("Not found", { status: 404 });
 
+  const base = group.baseCurrency;
   let body: string | Blob;
   let kind: string;
   if (type === "balances") {
+    const expensesInBase = group.expenses.map((e) => ({
+      ...e,
+      amount: convertToBase(e.amount, e.rateMicros),
+    }));
     const balances = computeBalances(
       group.members,
-      group.expenses,
+      expensesInBase,
       group.payments
     );
     kind = "solduri";
     body =
       format === "pdf"
-        ? new Blob([balancesToPdf(balances, `${group.name} - solduri`)])
-        : `\uFEFF${balancesToCsv(balances)}`;
+        ? new Blob([balancesToPdf(balances, `${group.name} - solduri`, base)])
+        : `\uFEFF${balancesToCsv(balances, base)}`;
   } else {
     const expenses = group.expenses.map((e) => ({
       createdAt: e.createdAt,
       description: e.description,
       amount: e.amount,
+      currency: e.currency,
+      rateMicros: e.rateMicros,
       paidByName: e.paidBy.name,
       category: e.category,
       splitMode: e.splitMode,
@@ -68,8 +76,10 @@ export async function GET(
     kind = "cheltuieli";
     body =
       format === "pdf"
-        ? new Blob([expensesToPdf(expenses, `${group.name} - cheltuieli`)])
-        : `\uFEFF${expensesToCsv(expenses)}`;
+        ? new Blob([
+            expensesToPdf(expenses, `${group.name} - cheltuieli`, base),
+          ])
+        : `\uFEFF${expensesToCsv(expenses, base)}`;
   }
 
   const today = new Date().toISOString().slice(0, 10);

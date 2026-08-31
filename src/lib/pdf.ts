@@ -1,4 +1,4 @@
-import { baniToInput } from "@/lib/money";
+import { baniToInput, rateMicrosToInput, convertToBase } from "@/lib/money";
 import { categoryLabel } from "@/lib/categories";
 import type { MemberBalance } from "@/lib/balances";
 import { SPLIT_MODE_LABEL, isoDate, type ExportExpense } from "@/lib/csv";
@@ -241,44 +241,61 @@ export function renderTablePdf(opts: TablePdfOptions): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-const EXPENSE_COLUMNS: PdfColumn[] = [
-  { header: "Data", width: 62 },
-  { header: "Descriere", width: 150 },
-  { header: "Sumă (RON)", width: 70, align: "right" },
-  { header: "Plătit de", width: 90 },
-  { header: "Categorie", width: 80 },
-  { header: "Împărțire", width: 90 },
-  { header: "Participanți", width: 220 },
-];
+function expenseColumns(baseCurrency: string): PdfColumn[] {
+  return [
+    { header: "Data", width: 58 },
+    { header: "Descriere", width: 120 },
+    { header: "Sumă", width: 58, align: "right" },
+    { header: "Val.", width: 38 },
+    { header: "Curs", width: 46, align: "right" },
+    { header: `Sumă (${baseCurrency})`, width: 66, align: "right" },
+    { header: "Plătit de", width: 76 },
+    { header: "Categorie", width: 66 },
+    { header: "Împărțire", width: 66 },
+    { header: "Participanți", width: 168 },
+  ];
+}
 
 export function expensesToPdf(
   expenses: ExportExpense[],
-  title = "Cheltuieli"
+  title = "Cheltuieli",
+  baseCurrency = "RON"
 ): Uint8Array<ArrayBuffer> {
   const rows = expenses.map((e) => [
     isoDate(e.createdAt),
     e.description,
     baniToInput(e.amount),
+    e.currency,
+    rateMicrosToInput(e.rateMicros),
+    baniToInput(convertToBase(e.amount, e.rateMicros)),
     e.paidByName,
     categoryLabel(e.category) ?? "",
     SPLIT_MODE_LABEL[e.splitMode] ?? e.splitMode,
     e.participantNames.join(", "),
   ]);
-  return renderTablePdf({ title, columns: EXPENSE_COLUMNS, rows });
+  return renderTablePdf({ title, columns: expenseColumns(baseCurrency), rows });
 }
 
-const BALANCE_COLUMNS: PdfColumn[] = [
-  { header: "Membru", width: 162 },
-  { header: "Plătit (RON)", width: 120, align: "right" },
-  { header: "Datorat (RON)", width: 120, align: "right" },
-  { header: "Trimis (RON)", width: 120, align: "right" },
-  { header: "Primit (RON)", width: 120, align: "right" },
-  { header: "Net (RON)", width: 120, align: "right" },
-];
+function balanceColumns(baseCurrency: string): PdfColumn[] {
+  const money = (header: string): PdfColumn => ({
+    header: `${header} (${baseCurrency})`,
+    width: 120,
+    align: "right",
+  });
+  return [
+    { header: "Membru", width: 162 },
+    money("Plătit"),
+    money("Datorat"),
+    money("Trimis"),
+    money("Primit"),
+    money("Net"),
+  ];
+}
 
 export function balancesToPdf(
   balances: MemberBalance[],
-  title = "Solduri"
+  title = "Solduri",
+  baseCurrency = "RON"
 ): Uint8Array<ArrayBuffer> {
   const rows = balances.map((b) => [
     b.name,
@@ -288,5 +305,5 @@ export function balancesToPdf(
     baniToInput(b.received),
     baniToInput(b.net),
   ]);
-  return renderTablePdf({ title, columns: BALANCE_COLUMNS, rows });
+  return renderTablePdf({ title, columns: balanceColumns(baseCurrency), rows });
 }

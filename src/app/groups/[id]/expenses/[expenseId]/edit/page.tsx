@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireGroupAccess } from "@/lib/access";
-import { baniToInput, basisPointsToInput, sharesToInput } from "@/lib/money";
+import {
+  baniToInput,
+  basisPointsToInput,
+  sharesToInput,
+  rateMicrosToInput,
+} from "@/lib/money";
 import { updateExpense } from "@/app/actions";
 import { ExpenseForm, type SplitMode } from "@/app/expense-form";
 
@@ -52,12 +57,18 @@ export default async function EditExpensePage({
         members={expense.group.members}
         action={boundUpdateExpense}
         submitLabel="Salvează"
+        baseCurrency={expense.group.baseCurrency}
         cancelHref={`/groups/${id}`}
         defaults={{
           description: expense.description,
           amount: baniToInput(expense.amount),
           paidById: expense.paidById,
           category: expense.category ?? "",
+          currency: expense.currency,
+          rate:
+            expense.currency === expense.group.baseCurrency
+              ? ""
+              : rateMicrosToInput(expense.rateMicros),
           splitMode,
           participantIds: expense.participants.map((p) => p.memberId),
           weights,

@@ -3,8 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { toBani, toBasisPoints, toShares, FULL_PERCENT_BP } from "@/lib/money";
+import {
+  toBani,
+  toBasisPoints,
+  toShares,
+  toRateMicros,
+  RATE_SCALE,
+  FULL_PERCENT_BP,
+} from "@/lib/money";
 import { isExpenseCategory } from "@/lib/categories";
+import { isCurrency, DEFAULT_CURRENCY } from "@/lib/currencies";
 import { requireUser } from "@/lib/auth";
 import { requireGroupAccess } from "@/lib/access";
 
@@ -65,14 +73,34 @@ function readCategory(formData: FormData): string | null {
   return isExpenseCategory(raw) ? raw : null;
 }
 
+// Read the expense currency + its exchange rate to the group's base currency.
+// Same currency as the group -> rate is exactly 1. A foreign currency needs a
+// positive rate; anything else is rejected (null), matching the form's guard.
+function readCurrency(
+  formData: FormData,
+  baseCurrency: string
+): { currency: string; rateMicros: number } | null {
+  const raw = String(formData.get("currency") ?? "");
+  const currency = isCurrency(raw) ? raw : baseCurrency;
+  if (currency === baseCurrency) return { currency, rateMicros: RATE_SCALE };
+
+  const rateMicros = toRateMicros(String(formData.get("rate") ?? ""));
+  if (rateMicros <= 0) return null;
+  return { currency, rateMicros };
+}
+
 export async function createGroup(formData: FormData) {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
+  const rawCurrency = String(formData.get("baseCurrency") ?? "");
+  const baseCurrency = isCurrency(rawCurrency) ? rawCurrency : DEFAULT_CURRENCY;
+
   const group = await prisma.group.create({
     data: {
       name,
+      baseCurrency,
       ownerId: user.id,
       groupMembers: { create: { userId: user.id, role: "owner" } },
     },
@@ -164,12 +192,22 @@ export async function addExpense(groupId: string, formData: FormData) {
   const split = readSplit(formData, amount);
   if (!split) return;
 
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { baseCurrency: true },
+  });
+  if (!group) return;
+  const money = readCurrency(formData, group.baseCurrency);
+  if (!money) return;
+
   await prisma.expense.create({
     data: {
       groupId,
       description,
       amount,
       paidById,
+      currency: money.currency,
+      rateMicros: money.rateMicros,
       category: readCategory(formData),
       splitMode: split.splitMode,
       participants: { create: split.participants },
@@ -195,9 +233,12 @@ export async function updateExpense(
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId },
-    select: { id: true },
+    select: { id: true, group: { select: { baseCurrency: true } } },
   });
   if (!expense) return;
+
+  const money = readCurrency(formData, expense.group.baseCurrency);
+  if (!money) return;
 
   await prisma.expense.update({
     where: { id: expenseId },
@@ -205,6 +246,8 @@ export async function updateExpense(
       description,
       amount,
       paidById,
+      currency: money.currency,
+      rateMicros: money.rateMicros,
       category: readCategory(formData),
       splitMode: split.splitMode,
       participants: {

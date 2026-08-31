@@ -1,4 +1,4 @@
-import { baniToInput } from "@/lib/money";
+import { baniToInput, rateMicrosToInput, convertToBase } from "@/lib/money";
 import { categoryLabel } from "@/lib/categories";
 import type { MemberBalance } from "@/lib/balances";
 
@@ -28,18 +28,26 @@ export function isoDate(date: Date): string {
 export type ExportExpense = {
   createdAt: Date;
   description: string;
-  amount: number; // bani
+  amount: number; // bani, in the expense's own currency
+  currency: string;
+  rateMicros: number;
   paidByName: string;
   category: string | null;
   splitMode: string;
   participantNames: string[];
 };
 
-export function expensesToCsv(expenses: ExportExpense[]): string {
+export function expensesToCsv(
+  expenses: ExportExpense[],
+  baseCurrency = "RON"
+): string {
   const header = [
     "Data",
     "Descriere",
-    "Sumă (RON)",
+    "Sumă",
+    "Valută",
+    "Curs",
+    `Sumă (${baseCurrency})`,
     "Plătit de",
     "Categorie",
     "Împărțire",
@@ -49,6 +57,9 @@ export function expensesToCsv(expenses: ExportExpense[]): string {
     isoDate(e.createdAt),
     e.description,
     baniToInput(e.amount),
+    e.currency,
+    rateMicrosToInput(e.rateMicros),
+    baniToInput(convertToBase(e.amount, e.rateMicros)),
     e.paidByName,
     categoryLabel(e.category) ?? "",
     SPLIT_MODE_LABEL[e.splitMode] ?? e.splitMode,
@@ -57,14 +68,17 @@ export function expensesToCsv(expenses: ExportExpense[]): string {
   return toCsv([header, ...rows]);
 }
 
-export function balancesToCsv(balances: MemberBalance[]): string {
+export function balancesToCsv(
+  balances: MemberBalance[],
+  baseCurrency = "RON"
+): string {
   const header = [
     "Membru",
-    "Plătit (RON)",
-    "Datorat (RON)",
-    "Trimis (RON)",
-    "Primit (RON)",
-    "Net (RON)",
+    `Plătit (${baseCurrency})`,
+    `Datorat (${baseCurrency})`,
+    `Trimis (${baseCurrency})`,
+    `Primit (${baseCurrency})`,
+    `Net (${baseCurrency})`,
   ];
   const rows = balances.map((b) => [
     b.name,

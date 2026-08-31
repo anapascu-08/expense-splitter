@@ -1,4 +1,4 @@
-import { formatBani } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { CATEGORY_ICONS, CATEGORY_LABELS } from "@/lib/categories";
 import {
   groupTotal,
@@ -11,8 +11,10 @@ type Member = { id: string; name: string };
 
 function Bars({
   rows,
+  currency,
 }: {
   rows: { key: string; label: string; total: number }[];
+  currency: string;
 }) {
   const max = Math.max(...rows.map((r) => r.total), 1);
   return (
@@ -27,7 +29,7 @@ function Bars({
             />
           </span>
           <span className="w-24 shrink-0 text-right tabular-nums">
-            {formatBani(row.total)}
+            {formatMoney(row.total, currency)}
           </span>
         </li>
       ))}
@@ -38,9 +40,11 @@ function Bars({
 export function GroupSummary({
   expenses,
   members,
+  currency,
 }: {
   expenses: SummaryExpense[];
   members: Member[];
+  currency: string;
 }) {
   if (expenses.length === 0) return null;
 
@@ -65,7 +69,7 @@ export function GroupSummary({
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-medium">Rezumat</h2>
         <span className="text-sm text-gray-500 dark:text-gray-400">
-          Total grup: {formatBani(groupTotal(expenses))} RON
+          Total grup: {formatMoney(groupTotal(expenses), currency)}
         </span>
       </div>
 
@@ -74,7 +78,7 @@ export function GroupSummary({
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Pe categorii
           </h3>
-          <Bars rows={categoryRows} />
+          <Bars rows={categoryRows} currency={currency} />
         </div>
       )}
 
@@ -82,7 +86,7 @@ export function GroupSummary({
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
           Cine cât a plătit
         </h3>
-        <Bars rows={payerRows} />
+        <Bars rows={payerRows} currency={currency} />
       </div>
     </section>
   );

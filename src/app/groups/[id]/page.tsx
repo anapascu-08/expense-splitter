@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireGroupAccess } from "@/lib/access";
 import { CopyButton } from "@/app/copy-button";
 import { computeBalances, computeSettlement } from "@/lib/balances";
-import { baniToInput, formatBani } from "@/lib/money";
+import { baniToInput, formatMoney, convertToBase } from "@/lib/money";
 import {
   addExpense,
   addMember,
@@ -64,7 +64,14 @@ export default async function GroupPage({
 
   if (!group) notFound();
 
-  const balances = computeBalances(group.members, group.expenses, group.payments);
+  // Balances, settlement and the summary all work in the group's base currency;
+  // each expense is converted from its own currency using the rate stored on it.
+  const base = group.baseCurrency;
+  const expensesInBase = group.expenses.map((e) => ({
+    ...e,
+    amount: convertToBase(e.amount, e.rateMicros),
+  }));
+  const balances = computeBalances(group.members, expensesInBase, group.payments);
   const settlement = computeSettlement(balances);
 
   // How each member is tied to expenses / payments — drives whether they can be deleted.
@@ -302,7 +309,7 @@ export default async function GroupPage({
                   }
                 >
                   {b.net > 0 ? "i se datorează " : b.net < 0 ? "datorează " : ""}
-                  {formatBani(Math.abs(b.net))} RON
+                  {formatMoney(Math.abs(b.net), base)}
                 </span>
               </li>
             ))}
@@ -320,7 +327,7 @@ export default async function GroupPage({
                 <p>
                   <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
                   <span className="font-medium">{t.toName}</span>{" "}
-                  {formatBani(t.amount)} RON
+                  {formatMoney(t.amount, base)}
                 </p>
                 <form action={boundAddPayment}>
                   <input type="hidden" name="fromId" value={t.fromId} />
@@ -358,15 +365,16 @@ export default async function GroupPage({
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="font-medium">
-                    {formatBani(payment.amount)} RON
+                    {formatMoney(payment.amount, base)}
                   </span>
                   <form
                     action={deletePayment.bind(null, group.id, payment.id)}
                   >
                     <ConfirmButton
-                      message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatBani(
-                        payment.amount
-                      )} RON)?`}
+                      message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatMoney(
+                        payment.amount,
+                        base
+                      )})?`}
                       className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                     >
                       șterge
@@ -420,7 +428,7 @@ export default async function GroupPage({
               </select>
             </label>
             <label className="flex flex-1 flex-col gap-1 text-sm">
-              Sumă (RON)
+              Sumă ({base})
               <input
                 type="text"
                 inputMode="decimal"
@@ -475,8 +483,17 @@ export default async function GroupPage({
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-medium">
-                    {formatBani(expense.amount)} RON
+                  <span className="text-right font-medium">
+                    {formatMoney(expense.amount, expense.currency)}
+                    {expense.currency !== base && (
+                      <span className="block text-xs font-normal text-gray-400">
+                        ≈{" "}
+                        {formatMoney(
+                          convertToBase(expense.amount, expense.rateMicros),
+                          base
+                        )}
+                      </span>
+                    )}
                   </span>
                   <Link
                     href={`/groups/${group.id}/expenses/${expense.id}/edit`}
@@ -500,7 +517,11 @@ export default async function GroupPage({
         )}
       </section>
 
-      <GroupSummary expenses={group.expenses} members={group.members} />
+      <GroupSummary
+        expenses={expensesInBase}
+        members={group.members}
+        currency={base}
+      />
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Export</h2>
@@ -539,6 +560,7 @@ export default async function GroupPage({
             members={group.members}
             action={boundAddExpense}
             submitLabel="Adaugă cheltuială"
+            baseCurrency={base}
           />
         </section>
       )}

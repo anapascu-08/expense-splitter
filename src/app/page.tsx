@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { createGroup } from "./actions";
+import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@/lib/currencies";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -48,7 +49,7 @@ export default async function HomePage() {
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Creează un grup nou</h2>
-        <form action={createGroup} className="flex gap-2">
+        <form action={createGroup} className="flex flex-wrap gap-2">
           <input
             type="text"
             name="name"
@@ -56,6 +57,21 @@ export default async function HomePage() {
             required
             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
           />
+          <label className="flex items-center gap-2 text-sm">
+            <span className="sr-only">Valuta de bază</span>
+            <select
+              name="baseCurrency"
+              defaultValue={DEFAULT_CURRENCY}
+              aria-label="Valuta de bază"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+            >
+              {CURRENCY_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="submit"
             className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
@@ -63,6 +79,10 @@ export default async function HomePage() {
             Creează
           </button>
         </form>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Valuta de bază nu se mai poate schimba după creare. Cheltuielile pot fi
+          în alte valute, cu un curs introdus manual.
+        </p>
       </section>
     </main>
   );

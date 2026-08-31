@@ -90,21 +90,30 @@ describe("renderTablePdf", () => {
 describe("expensesToPdf / balancesToPdf", () => {
   it("renders expenses with a header row and data", () => {
     const pdf = latin1(
-      expensesToPdf([
-        {
-          createdAt: new Date("2026-08-28T09:30:00.000Z"),
-          description: "Cazare",
-          amount: 30000,
-          paidByName: "Alice",
-          category: "cazare",
-          splitMode: "EQUAL",
-          participantNames: ["Alice", "Bob"],
-        },
-      ])
+      expensesToPdf(
+        [
+          {
+            createdAt: new Date("2026-08-28T09:30:00.000Z"),
+            description: "Cazare",
+            amount: 30000,
+            currency: "EUR",
+            rateMicros: 4_982_300,
+            paidByName: "Alice",
+            category: "cazare",
+            splitMode: "EQUAL",
+            participantNames: ["Alice", "Bob"],
+          },
+        ],
+        "Cheltuieli",
+        "RON"
+      )
     );
     expect(pdf.startsWith("%PDF-1.4")).toBe(true);
     expect(pdf).toContain("(Descriere) Tj");
     expect(pdf).toContain("(Cazare) Tj");
+    // currency column + base-currency header (ă folded to a, parens escaped)
+    expect(pdf).toContain("(EUR) Tj");
+    expect(pdf).toContain("(Suma \\(RON\\)) Tj");
   });
 
   it("renders balances with a header row and member rows", () => {

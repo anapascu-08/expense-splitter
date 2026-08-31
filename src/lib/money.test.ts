@@ -2,11 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   toBani,
   formatBani,
+  formatMoney,
   baniToInput,
   toBasisPoints,
   basisPointsToInput,
   toShares,
   sharesToInput,
+  toRateMicros,
+  rateMicrosToInput,
+  convertToBase,
+  RATE_SCALE,
   FULL_PERCENT_BP,
 } from "@/lib/money";
 
@@ -66,6 +71,62 @@ describe("formatBani", () => {
     expect(formatBani(123456)).toBe("1.234,56");
     expect(formatBani(0)).toBe("0,00");
     expect(formatBani(5)).toBe("0,05");
+  });
+});
+
+describe("formatMoney", () => {
+  it("appends the currency symbol", () => {
+    expect(formatMoney(123456, "RON")).toBe("1.234,56 lei");
+    expect(formatMoney(4990, "EUR")).toBe("49,90 €");
+  });
+
+  it("falls back to the code for an unknown currency", () => {
+    expect(formatMoney(100, "XYZ")).toBe("1,00 XYZ");
+  });
+});
+
+describe("toRateMicros", () => {
+  it("scales a decimal rate by 1_000_000", () => {
+    expect(toRateMicros("4.9823")).toBe(4_982_300);
+    expect(toRateMicros("1")).toBe(RATE_SCALE);
+    expect(toRateMicros("4,9823")).toBe(4_982_300);
+  });
+
+  it("clamps non-positive and junk input to 0 (unlike toBani, which keeps negatives)", () => {
+    expect(toRateMicros("0")).toBe(0);
+    expect(toRateMicros("-2")).toBe(0);
+    expect(toRateMicros("")).toBe(0);
+    expect(toRateMicros("abc")).toBe(0);
+  });
+});
+
+describe("rateMicrosToInput / toRateMicros round-trip", () => {
+  it("trims trailing zeros", () => {
+    expect(rateMicrosToInput(RATE_SCALE)).toBe("1");
+    expect(rateMicrosToInput(1_500_000)).toBe("1.5");
+    expect(rateMicrosToInput(4_982_300)).toBe("4.9823");
+  });
+
+  it("round-trips whole-micro rates", () => {
+    for (const micros of [RATE_SCALE, 1_500_000, 4_982_300, 250_000]) {
+      expect(toRateMicros(rateMicrosToInput(micros))).toBe(micros);
+    }
+  });
+});
+
+describe("convertToBase", () => {
+  it("is a no-op at RATE_SCALE", () => {
+    expect(convertToBase(10000, RATE_SCALE)).toBe(10000);
+  });
+
+  it("converts expense-currency bani to base-currency bani", () => {
+    expect(convertToBase(10000, 4_982_300)).toBe(49823);
+    expect(convertToBase(333, 4_982_300)).toBe(1659);
+  });
+
+  it("KNOWN QUIRK: half-bani rounds toward +Infinity (Math.round), not to even", () => {
+    expect(convertToBase(5, 500_000)).toBe(3); // 2.5 -> 3
+    expect(convertToBase(-5, 500_000)).toBe(-2); // -2.5 -> -2
   });
 });
 

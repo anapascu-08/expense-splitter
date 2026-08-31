@@ -71,6 +71,11 @@ model Group {
   name      String
   createdAt DateTime  @default(now())
 
+  // Currency every balance in this group is expressed in. One of the codes in
+  // src/lib/currencies.ts. Chosen at creation, not editable afterwards (that
+  // would invalidate the per-expense rates below).
+  baseCurrency String @default("RON")
+
   ownerId String
   owner   User   @relation("GroupOwner", fields: [ownerId], references: [id])
 
@@ -104,6 +109,13 @@ model Expense {
   description String
   amount      Int
   createdAt   DateTime @default(now())
+
+  // Currency this expense was entered in (a code from src/lib/currencies.ts),
+  // and the exchange rate to the group's base currency at entry time, stored
+  // as "micros" = base units per 1 expense-currency unit * 1_000_000. When
+  // currency == group.baseCurrency the rate is exactly 1_000_000.
+  currency   String @default("RON")
+  rateMicros Int    @default(1000000)
 
   // One of the slugs in src/lib/categories.ts, or null = uncategorised.
   category String?
