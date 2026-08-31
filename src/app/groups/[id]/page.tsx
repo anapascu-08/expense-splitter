@@ -109,7 +109,7 @@ export default async function GroupPage({
           href="/"
           className="text-sm text-gray-500 hover:underline dark:text-gray-400"
         >
-          ← toate grupurile
+          ← Toate grupurile
         </Link>
         <h1 className="text-2xl font-semibold">{group.name}</h1>
         {isOwner && (
@@ -226,49 +226,87 @@ export default async function GroupPage({
       </section>
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Invită pe cineva</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Oricine deschide un link activ și e autentificat intră în grup.
-          Linkurile expiră după 7 zile.
-        </p>
-        {group.invites.length > 0 && (
+        <h2 className="text-lg font-medium">Cheltuieli</h2>
+        {group.members.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Adaugă întâi un membru ca să poți înregistra cheltuieli.
+          </p>
+        ) : (
+          <ExpenseForm
+            members={group.members}
+            action={boundAddExpense}
+            submitLabel="Adaugă cheltuială"
+            baseCurrency={base}
+          />
+        )}
+        {group.expenses.length === 0 ? (
+          group.members.length > 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Nicio cheltuială încă. Adaugă una ca să vezi soldurile.
+            </p>
+          )
+        ) : (
           <ul className="flex flex-col gap-2">
-            {group.invites.map((invite) => {
-              const url = `${origin}/invite/${invite.token}`;
-              return (
-                <li
-                  key={invite.token}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
-                >
-                  <code className="truncate text-gray-600 dark:text-gray-300">
-                    {url}
-                  </code>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <CopyButton
-                      text={url}
-                      className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                    />
-                    <form
-                      action={revokeInvite.bind(null, group.id, invite.token)}
-                    >
-                      <SubmitButton
-                        pendingLabel="…"
-                        className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+            {group.expenses.map((expense) => (
+              <li
+                key={expense.id}
+                className="flex items-start justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
+              >
+                <div>
+                  <p className="font-medium">
+                    {expense.category && isExpenseCategory(expense.category) && (
+                      <span
+                        className="mr-1"
+                        title={CATEGORY_LABELS[expense.category]}
                       >
-                        revocă
-                      </SubmitButton>
-                    </form>
-                  </div>
-                </li>
-              );
-            })}
+                        {CATEGORY_ICONS[expense.category]}
+                      </span>
+                    )}
+                    {expense.description}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    plătit de {expense.paidBy.name} · împărțit între{" "}
+                    {expense.participants.map((p) => p.member.name).join(", ")}
+                    {expense.splitMode !== "EQUAL" &&
+                      ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
+                    {expense.category &&
+                      isExpenseCategory(expense.category) &&
+                      ` · ${CATEGORY_LABELS[expense.category]}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-right font-medium">
+                    {formatMoney(expense.amount, expense.currency)}
+                    {expense.currency !== base && (
+                      <span className="block text-xs font-normal text-gray-400">
+                        ≈{" "}
+                        {formatMoney(
+                          convertToBase(expense.amount, expense.rateMicros),
+                          base
+                        )}
+                      </span>
+                    )}
+                  </span>
+                  <Link
+                    href={`/groups/${group.id}/expenses/${expense.id}/edit`}
+                    className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  >
+                    editează
+                  </Link>
+                  <form action={deleteExpense.bind(null, group.id, expense.id)}>
+                    <ConfirmButton
+                      message={`Ștergi cheltuiala „${expense.description}”?`}
+                      className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      aria-label={`Șterge ${expense.description}`}
+                    >
+                      șterge
+                    </ConfirmButton>
+                  </form>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
-        <form action={boundCreateInvite}>
-          <SubmitButton pendingLabel="Se generează…">
-            Generează link de invitație
-          </SubmitButton>
-        </form>
       </section>
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
@@ -425,81 +463,58 @@ export default async function GroupPage({
         )}
       </section>
 
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Cheltuieli</h2>
-        {group.expenses.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Nicio cheltuială încă.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {group.expenses.map((expense) => (
-              <li
-                key={expense.id}
-                className="flex items-start justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
-              >
-                <div>
-                  <p className="font-medium">
-                    {expense.category && isExpenseCategory(expense.category) && (
-                      <span
-                        className="mr-1"
-                        title={CATEGORY_LABELS[expense.category]}
-                      >
-                        {CATEGORY_ICONS[expense.category]}
-                      </span>
-                    )}
-                    {expense.description}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    plătit de {expense.paidBy.name} · împărțit între{" "}
-                    {expense.participants.map((p) => p.member.name).join(", ")}
-                    {expense.splitMode !== "EQUAL" &&
-                      ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
-                    {expense.category &&
-                      isExpenseCategory(expense.category) &&
-                      ` · ${CATEGORY_LABELS[expense.category]}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-right font-medium">
-                    {formatMoney(expense.amount, expense.currency)}
-                    {expense.currency !== base && (
-                      <span className="block text-xs font-normal text-gray-400">
-                        ≈{" "}
-                        {formatMoney(
-                          convertToBase(expense.amount, expense.rateMicros),
-                          base
-                        )}
-                      </span>
-                    )}
-                  </span>
-                  <Link
-                    href={`/groups/${group.id}/expenses/${expense.id}/edit`}
-                    className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                  >
-                    editează
-                  </Link>
-                  <form action={deleteExpense.bind(null, group.id, expense.id)}>
-                    <ConfirmButton
-                      message={`Ștergi cheltuiala „${expense.description}”?`}
-                      className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                      aria-label={`Șterge ${expense.description}`}
-                    >
-                      șterge
-                    </ConfirmButton>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       <GroupSummary
         expenses={expensesInBase}
         members={group.members}
         currency={base}
       />
+
+      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 className="text-lg font-medium">Invită pe cineva</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Oricine deschide un link activ și e autentificat intră în grup.
+          Linkurile expiră după 7 zile.
+        </p>
+        {group.invites.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {group.invites.map((invite) => {
+              const url = `${origin}/invite/${invite.token}`;
+              return (
+                <li
+                  key={invite.token}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
+                >
+                  <code className="truncate text-gray-600 dark:text-gray-300">
+                    {url}
+                  </code>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <CopyButton
+                      text={url}
+                      className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    />
+                    <form
+                      action={revokeInvite.bind(null, group.id, invite.token)}
+                    >
+                      <SubmitButton
+                        pendingLabel="…"
+                        className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+                      >
+                        revocă
+                      </SubmitButton>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <form action={boundCreateInvite}>
+          <SubmitButton pendingLabel="Se generează…">
+            Generează link de invitație
+          </SubmitButton>
+        </form>
+      </section>
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Export</h2>
@@ -530,18 +545,6 @@ export default async function GroupPage({
           </a>
         </div>
       </section>
-
-      {group.members.length > 0 && (
-        <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-          <h2 className="text-lg font-medium">Adaugă o cheltuială</h2>
-          <ExpenseForm
-            members={group.members}
-            action={boundAddExpense}
-            submitLabel="Adaugă cheltuială"
-            baseCurrency={base}
-          />
-        </section>
-      )}
     </main>
   );
 }

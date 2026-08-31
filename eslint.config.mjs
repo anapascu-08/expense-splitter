@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Nested build output / agent worktrees under this repo (git worktrees
+    // created for background agents live in .claude/worktrees/*).
+    "**/.next/**",
+    ".claude/**",
   ]),
 ]);
 
