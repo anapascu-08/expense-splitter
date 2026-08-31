@@ -155,11 +155,28 @@ unui slot `Member` la accept invitație.
   randează bare CSS (fără bibliotecă de charts): total grup, cheltuieli pe
   categorie, cât a plătit fiecare membru
 
-### Faza 6 — UI/UX & polish vizual
+### Faza 6 — UI/UX & polish vizual 🔶 (în lucru)
 
 Până acum UI-ul e strict funcțional (formulare + tabele Tailwind, fără
 tratare de stări). Faza asta îl aduce la un nivel „prezentabil", fără
 librării de componente noi — doar Tailwind și convențiile deja folosite.
+
+Făcut până acum:
+- ✅ Feedback la fiecare acțiune — `SubmitButton` (`useFormStatus`) dezactivează
+  + „Se salvează…" cât rulează server action-ul; `FormState` (`{ error } | { ok }`)
+  întors de toate acțiunile de formular, afișat inline prin `FeedbackForm` /
+  `QuickPayForm` / în `ExpenseForm` (eroare `role="alert"`, succes care dispare).
+- ✅ Ordinea secțiunilor pe pagina de grup = ordinea folosirii: Membri →
+  Cheltuieli (cu formularul de adăugare sus) → Solduri → Plăți → Rezumat →
+  Invită → Export.
+- ✅ Fundație vizuală — token `--color-accent`, `:focus-visible` global,
+  primitive `.btn` / `.btn-primary` / `.btn-link-danger` / `.field` / `.card`
+  (`@apply`) pentru radius/spațiere/border uniforme; fix font (se folosea Arial
+  în loc de Geist); skeleton la prima încărcare a paginii de grup.
+
+Rămas: câmp invalid marcat individual (`aria-invalid`), coloană laterală
+sticky pentru solduri pe desktop, container mai lat unde e tabel, sume aliniate
+în coloană cu `tabular-nums`.
 
 **Principii**
 - Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)
