@@ -67,13 +67,13 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 
 ## Faze de implementare
 
-### Faza 0 — MVP ✅ (implementată)
+### Faza 0 — MVP ✅
 - Creare grup, adăugare membri
 - Adăugare cheltuială cu împărțire egală între participanți
 - Ștergere cheltuială
 - Calcul automat solduri + listă minimă de transferuri (settle-up)
 
-### Faza 1 — Editare & corectură ✅ (implementată)
+### Faza 1 — Editare & corectură ✅
 - Editare cheltuială existentă (descriere, sumă, plătitor, participanți) — pagină
   dedicată `/groups/[id]/expenses/[expenseId]/edit`
 - Editare/ștergere membru dintr-un grup — ștergerea e blocată (UI + server) cât
@@ -82,7 +82,7 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 - Confirmare înainte de ștergere — componenta `ConfirmButton` pe toate acțiunile
   distructive
 
-### Faza 2 — Împărțire flexibilă ✅ (implementată)
+### Faza 2 — Împărțire flexibilă ✅
 - Sume custom per participant (nu doar împărțire egală) — mod `EXACT`
 - Împărțire pe procente — mod `PERCENT`
 - Împărțire pe cote (shares) — mod `SHARES`: fiecare participant primește un
@@ -95,7 +95,7 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   evidențiată roșu până când se închide la zero; pentru `SHARES` preview cu
   cât iese fiecare; submit blocat cât timp nu se potrivește.
 
-### Faza 3 — Plăți & decontări persistate ✅ (implementată)
+### Faza 3 — Plăți & decontări persistate ✅
 - Model `Payment` (cine a plătit cui, cât, când)
 - Istoric plăți per grup — secțiune „Plăți", fiecare cu ștergere confirmată
 - Solduri recalculate ținând cont de plățile deja făcute
@@ -104,7 +104,7 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   care creează plata cu suma din transfer; istoricul plăților ca secțiune
   separată sub solduri, cu opțiune de anulare.
 
-### Faza 4 — Autentificare & acces multi-utilizator ✅ (implementată)
+### Faza 4 — Autentificare & acces multi-utilizator ✅
 - Conturi reale de utilizator (`User` + email/parolă) — auth hand-rolled,
   fără dependințe: `node:crypto` scrypt pentru parole (`src/lib/auth.ts`),
   sesiuni opace în tabelul `Session` (cookie httpOnly cu token random, în DB
