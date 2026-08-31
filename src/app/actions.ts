@@ -128,8 +128,17 @@ export async function deleteGroup(groupId: string) {
   const { role } = await requireGroupAccess(groupId);
   if (role !== "owner") return;
 
-  // Cascade deletes members, expenses and participant rows (see schema).
-  await prisma.group.delete({ where: { id: groupId } });
+  // Members are Restrict-referenced by Expense.paidBy and Payment.from/to, so a
+  // plain group.delete() cascade can trip those constraints depending on the
+  // order the DB unwinds them. Clear the blockers first, then members, then the
+  // group (which cascades the remaining GroupMember / GroupInvite rows).
+  await prisma.$transaction([
+    prisma.payment.deleteMany({ where: { groupId } }),
+    prisma.expense.deleteMany({ where: { groupId } }),
+    prisma.member.deleteMany({ where: { groupId } }),
+    prisma.group.delete({ where: { id: groupId } }),
+  ]);
+
   revalidatePath("/");
   redirect("/");
 }

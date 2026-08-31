@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createGroup,
   updateGroup,
+  deleteGroup,
   addExpense,
   addMember as addMemberAction,
   acceptInvite,
@@ -38,6 +39,58 @@ describe("createGroup", () => {
 
     expect(state).toEqual({ error: "Dă un nume grupului." });
     expect(await prisma.group.count()).toBe(0);
+  });
+});
+
+describe("deleteGroup", () => {
+  it("removes a group that has expenses and payments referencing its members", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const b = await prisma.member.create({
+      data: { groupId: group.id, name: "B" },
+    });
+    await prisma.expense.create({
+      data: {
+        groupId: group.id,
+        description: "x",
+        amount: 1000,
+        paidById: a.id,
+        splitMode: "EQUAL",
+        participants: {
+          create: [
+            { memberId: a.id, weight: 1 },
+            { memberId: b.id, weight: 1 },
+          ],
+        },
+      },
+    });
+    await prisma.payment.create({
+      data: { groupId: group.id, amount: 500, fromId: b.id, toId: a.id },
+    });
+
+    const url = await catchRedirect(deleteGroup(group.id));
+
+    expect(url).toBe("/");
+    expect(await prisma.group.count({ where: { id: group.id } })).toBe(0);
+    expect(await prisma.expense.count({ where: { groupId: group.id } })).toBe(0);
+    expect(await prisma.payment.count({ where: { groupId: group.id } })).toBe(0);
+    expect(await prisma.member.count({ where: { groupId: group.id } })).toBe(0);
+  });
+
+  it("is a no-op for a non-owner member", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const member = await makeUser();
+    await addMember(group.id, member.user.id);
+    await signIn(member.user.id);
+
+    await deleteGroup(group.id);
+
+    expect(await prisma.group.count({ where: { id: group.id } })).toBe(1);
   });
 });
 
