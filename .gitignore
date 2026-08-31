@@ -34,9 +34,7 @@ yarn-error.log*
 .env*
 !.env.example
 
-# sqlite database (dev.db, test.db, and -journal/-wal/-shm sidecars)
-/prisma/*.db
-/prisma/*.db-*
+# local database is Postgres now; nothing to ignore here (see .env)
 
 # vercel
 .vercel
