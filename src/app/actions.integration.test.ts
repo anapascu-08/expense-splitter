@@ -3,6 +3,7 @@ import {
   createGroup,
   updateGroup,
   addExpense,
+  addMember as addMemberAction,
   acceptInvite,
 } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,54 @@ describe("createGroup", () => {
     expect(group?.groupMembers).toEqual([
       expect.objectContaining({ userId: user.id, role: "owner" }),
     ]);
+  });
+
+  it("returns an error for a blank name and creates nothing", async () => {
+    const { user } = await makeUser();
+    await signIn(user.id);
+
+    const state = await createGroup(undefined, formData({ name: "  " }));
+
+    expect(state).toEqual({ error: "Dă un nume grupului." });
+    expect(await prisma.group.count()).toBe(0);
+  });
+});
+
+describe("form-level validation feedback", () => {
+  it("addMember rejects a duplicate name, accepts a new one", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    await prisma.member.create({ data: { groupId: group.id, name: "Alice" } });
+
+    const dup = await addMemberAction(
+      group.id,
+      undefined,
+      formData({ name: "Alice" })
+    );
+    expect(dup).toEqual({ error: '„Alice” există deja în grup.' });
+
+    const ok = await addMemberAction(
+      group.id,
+      undefined,
+      formData({ name: "Bob" })
+    );
+    expect(ok).toEqual({ ok: "„Bob” a fost adăugat." });
+    expect(await prisma.member.count({ where: { groupId: group.id } })).toBe(2);
+  });
+
+  it("addExpense reports the first invalid field", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+
+    const state = await addExpense(
+      group.id,
+      undefined,
+      formData({ description: "", amount: "10" })
+    );
+    expect(state).toEqual({ error: "Adaugă o descriere." });
+    expect(await prisma.expense.count()).toBe(0);
   });
 });
 
