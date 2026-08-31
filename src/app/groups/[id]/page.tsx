@@ -22,6 +22,7 @@ import {
 import { ConfirmButton } from "@/app/confirm-button";
 import { SubmitButton } from "@/app/submit-button";
 import { FeedbackForm } from "@/app/feedback-form";
+import { QuickPayForm } from "@/app/quick-pay-form";
 import { ExpenseForm } from "@/app/expense-form";
 import { GroupSummary } from "@/app/group-summary";
 import {
@@ -119,7 +120,7 @@ export default async function GroupPage({
               redenumește / șterge grupul
             </summary>
             <div className="mt-3 flex flex-col gap-3">
-              <form action={boundUpdateGroup} className="flex gap-2">
+              <FeedbackForm action={boundUpdateGroup} rowClassName="flex gap-2">
                 <input
                   type="text"
                   name="name"
@@ -128,7 +129,7 @@ export default async function GroupPage({
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
                 />
                 <SubmitButton>Salvează</SubmitButton>
-              </form>
+              </FeedbackForm>
               <form action={deleteGroup.bind(null, group.id)}>
                 <ConfirmButton
                   message={`Ștergi grupul „${group.name}” cu tot cu membri și cheltuieli? Acțiunea nu poate fi anulată.`}
@@ -182,7 +183,10 @@ export default async function GroupPage({
                       <span className="text-xs text-gray-400">editează</span>
                     </summary>
                     <div className="mt-3 flex flex-col gap-3">
-                      <form action={boundUpdateMember} className="flex gap-2">
+                      <FeedbackForm
+                        action={boundUpdateMember}
+                        rowClassName="flex gap-2"
+                      >
                         <input
                           type="text"
                           name="name"
@@ -191,7 +195,7 @@ export default async function GroupPage({
                           className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
                         />
                         <SubmitButton>Salvează</SubmitButton>
-                      </form>
+                      </FeedbackForm>
                       {locked ? (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
@@ -351,17 +355,12 @@ export default async function GroupPage({
                   <span className="font-medium">{t.toName}</span>{" "}
                   {formatMoney(t.amount, base)}
                 </p>
-                <form action={boundAddPayment}>
-                  <input type="hidden" name="fromId" value={t.fromId} />
-                  <input type="hidden" name="toId" value={t.toId} />
-                  <input type="hidden" name="amount" value={baniToInput(t.amount)} />
-                  <SubmitButton
-                    pendingLabel="…"
-                    className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1 text-xs font-medium transition hover:border-gray-400 disabled:opacity-50 dark:border-gray-700 dark:hover:border-gray-500"
-                  >
-                    marchează achitat
-                  </SubmitButton>
-                </form>
+                <QuickPayForm
+                  fromId={t.fromId}
+                  toId={t.toId}
+                  amount={baniToInput(t.amount)}
+                  action={boundAddPayment}
+                />
               </div>
             ))}
           </div>
@@ -409,9 +408,9 @@ export default async function GroupPage({
         )}
 
         {group.members.length >= 2 && (
-          <form
+          <FeedbackForm
             action={boundAddPayment}
-            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            rowClassName="flex flex-col gap-3 sm:flex-row sm:items-end"
           >
             <label className="flex flex-1 flex-col gap-1 text-sm">
               De la
@@ -460,10 +459,9 @@ export default async function GroupPage({
               />
             </label>
             <SubmitButton pendingLabel="Se adaugă…">Adaugă plată</SubmitButton>
-          </form>
+          </FeedbackForm>
         )}
       </section>
-
 
       <GroupSummary
         expenses={expensesInBase}

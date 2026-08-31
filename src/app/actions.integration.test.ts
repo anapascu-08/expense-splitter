@@ -140,8 +140,13 @@ describe("updateGroup", () => {
     await addMember(group.id, member.user.id);
     await signIn(member.user.id);
 
-    await updateGroup(group.id, formData({ name: "Hijacked" }));
+    const state = await updateGroup(
+      group.id,
+      undefined,
+      formData({ name: "Hijacked" })
+    );
 
+    expect(state).toEqual({ error: "Doar owner-ul poate redenumi grupul." });
     const after = await prisma.group.findUnique({ where: { id: group.id } });
     expect(after?.name).toBe("Original");
   });
@@ -152,7 +157,7 @@ describe("updateGroup", () => {
     await signIn(owner.user.id);
 
     const url = await catchRedirect(
-      updateGroup(group.id, formData({ name: "Renamed" }))
+      updateGroup(group.id, undefined, formData({ name: "Renamed" }))
     );
     expect(url).toBe(`/groups/${group.id}`);
     const after = await prisma.group.findUnique({ where: { id: group.id } });
