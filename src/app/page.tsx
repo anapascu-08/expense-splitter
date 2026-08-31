@@ -57,7 +57,7 @@ export default async function HomePage() {
             name="name"
             placeholder="ex: Vacanța la mare"
             required
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+            className="flex-1 field"
           />
           <label className="flex items-center gap-2 text-sm">
             <span className="sr-only">Valuta de bază</span>
@@ -65,7 +65,7 @@ export default async function HomePage() {
               name="baseCurrency"
               defaultValue={DEFAULT_CURRENCY}
               aria-label="Valuta de bază"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+              className="field"
             >
               {CURRENCY_CODES.map((code) => (
                 <option key={code} value={code}>

@@ -10,7 +10,7 @@ type Props = {
 };
 
 const inputClass =
-  "rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent";
+  "field";
 
 export function AuthForm({ mode, action }: Props) {
   const [state, formAction, pending] = useActionState<AuthState, FormData>(

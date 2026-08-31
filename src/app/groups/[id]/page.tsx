@@ -126,14 +126,14 @@ export default async function GroupPage({
                   name="name"
                   defaultValue={group.name}
                   required
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
+                  className="field flex-1 text-gray-900 dark:text-gray-100"
                 />
                 <SubmitButton>Salvează</SubmitButton>
               </FeedbackForm>
               <form action={deleteGroup.bind(null, group.id)}>
                 <ConfirmButton
                   message={`Ștergi grupul „${group.name}” cu tot cu membri și cheltuieli? Acțiunea nu poate fi anulată.`}
-                  className="text-sm text-red-600 hover:underline dark:text-red-400"
+                  className="btn-link-danger"
                 >
                   Șterge grupul
                 </ConfirmButton>
@@ -175,7 +175,7 @@ export default async function GroupPage({
               return (
                 <li
                   key={member.id}
-                  className="rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
+                  className="card px-4 py-3"
                 >
                   <details className="text-sm">
                     <summary className="flex cursor-pointer select-none items-center justify-between">
@@ -192,7 +192,7 @@ export default async function GroupPage({
                           name="name"
                           defaultValue={member.name}
                           required
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
+                          className="field flex-1 text-gray-900 dark:text-gray-100"
                         />
                         <SubmitButton>Salvează</SubmitButton>
                       </FeedbackForm>
@@ -205,7 +205,7 @@ export default async function GroupPage({
                         <form action={deleteMember.bind(null, group.id, member.id)}>
                           <ConfirmButton
                             message={`Ștergi membrul „${member.name}”?`}
-                            className="text-sm text-red-600 hover:underline dark:text-red-400"
+                            className="btn-link-danger"
                           >
                             Șterge membrul
                           </ConfirmButton>
@@ -224,7 +224,7 @@ export default async function GroupPage({
             name="name"
             placeholder="Nume membru"
             required
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+            className="flex-1 field"
           />
           <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
         </FeedbackForm>
@@ -255,7 +255,7 @@ export default async function GroupPage({
             {group.expenses.map((expense) => (
               <li
                 key={expense.id}
-                className="flex items-start justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
+                className="flex items-start justify-between card px-4 py-3"
               >
                 <div>
                   <p className="font-medium">
@@ -378,7 +378,7 @@ export default async function GroupPage({
             {group.payments.map((payment) => (
               <li
                 key={payment.id}
-                className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
+                className="flex items-center justify-between card px-4 py-3 text-sm"
               >
                 <span>
                   <span className="font-medium">{payment.from.name}</span> →{" "}
@@ -418,7 +418,7 @@ export default async function GroupPage({
                 name="fromId"
                 required
                 defaultValue=""
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+                className="field"
               >
                 <option value="" disabled>
                   —
@@ -436,7 +436,7 @@ export default async function GroupPage({
                 name="toId"
                 required
                 defaultValue=""
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+                className="field"
               >
                 <option value="" disabled>
                   —
@@ -455,7 +455,7 @@ export default async function GroupPage({
                 inputMode="decimal"
                 name="amount"
                 required
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
+                className="field"
               />
             </label>
             <SubmitButton pendingLabel="Se adaugă…">Adaugă plată</SubmitButton>
@@ -482,7 +482,7 @@ export default async function GroupPage({
               return (
                 <li
                   key={invite.token}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-800"
+                  className="flex items-center justify-between gap-3 card px-4 py-3 text-sm"
                 >
                   <code className="truncate text-gray-600 dark:text-gray-300">
                     {url}
@@ -520,25 +520,25 @@ export default async function GroupPage({
         <div className="flex flex-wrap gap-3 text-sm">
           <a
             href={`/groups/${group.id}/export?type=expenses`}
-            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+            className="btn"
           >
             Cheltuieli (CSV)
           </a>
           <a
             href={`/groups/${group.id}/export?type=expenses&format=pdf`}
-            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+            className="btn"
           >
             Cheltuieli (PDF)
           </a>
           <a
             href={`/groups/${group.id}/export?type=balances`}
-            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+            className="btn"
           >
             Solduri (CSV)
           </a>
           <a
             href={`/groups/${group.id}/export?type=balances&format=pdf`}
-            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+            className="btn"
           >
             Solduri (PDF)
           </a>

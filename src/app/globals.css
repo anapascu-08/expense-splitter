@@ -42,3 +42,23 @@ body {
     border-radius: 2px;
   }
 }
+
+/* Shared primitives so buttons, inputs and cards stay uniform (radius, spacing,
+   the single card border). Only real utilities are @apply-ed here. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-700 dark:hover:border-gray-500;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg border border-transparent bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200;
+  }
+  .btn-link-danger {
+    @apply text-sm font-medium text-red-600 transition hover:underline disabled:opacity-50 dark:text-red-400;
+  }
+  .field {
+    @apply rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent;
+  }
+  .card {
+    @apply rounded-lg border border-gray-200 dark:border-gray-800;
+  }
+}
