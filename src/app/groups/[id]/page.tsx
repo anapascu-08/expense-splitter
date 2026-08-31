@@ -280,7 +280,7 @@ export default async function GroupPage({
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-right font-medium">
+                  <span className="text-right font-medium tabular-nums">
                     {formatMoney(expense.amount, expense.currency)}
                     {expense.currency !== base && (
                       <span className="block text-xs font-normal text-gray-400">
@@ -323,15 +323,16 @@ export default async function GroupPage({
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {balances.map((b) => (
-              <li key={b.memberId} className="flex justify-between">
+              <li key={b.memberId} className="flex justify-between gap-3">
                 <span>{b.name}</span>
                 <span
                   className={
-                    b.net > 0
+                    "shrink-0 tabular-nums " +
+                    (b.net > 0
                       ? "text-green-600 dark:text-green-400"
                       : b.net < 0
                         ? "text-red-600 dark:text-red-400"
-                        : "text-gray-500"
+                        : "text-gray-500")
                   }
                 >
                   {b.net > 0 ? "i se datorează " : b.net < 0 ? "datorează " : ""}
@@ -385,7 +386,7 @@ export default async function GroupPage({
                   <span className="font-medium">{payment.to.name}</span>
                 </span>
                 <div className="flex items-center gap-3">
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatMoney(payment.amount, base)}
                   </span>
                   <form
