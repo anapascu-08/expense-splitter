@@ -512,10 +512,22 @@ export default async function GroupPage({
             Cheltuieli (CSV)
           </a>
           <a
+            href={`/groups/${group.id}/export?type=expenses&format=pdf`}
+            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+          >
+            Cheltuieli (PDF)
+          </a>
+          <a
             href={`/groups/${group.id}/export?type=balances`}
             className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
           >
             Solduri (CSV)
+          </a>
+          <a
+            href={`/groups/${group.id}/export?type=balances&format=pdf`}
+            className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+          >
+            Solduri (PDF)
           </a>
         </div>
       </section>

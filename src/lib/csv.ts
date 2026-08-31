@@ -14,14 +14,14 @@ export function toCsv(rows: string[][]): string {
   return rows.map((row) => row.map(csvField).join(",")).join("\r\n");
 }
 
-const SPLIT_MODE_LABEL: Record<string, string> = {
+export const SPLIT_MODE_LABEL: Record<string, string> = {
   EQUAL: "egal",
   EXACT: "sume exacte",
   PERCENT: "procente",
   SHARES: "cote",
 };
 
-function isoDate(date: Date): string {
+export function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 

@@ -135,10 +135,13 @@ unui slot `Member` la accept invitație.
   câmp `Expense.category` (nullable); selector în formular; iconiță + etichetă
   pe fiecare cheltuială; rezumat „Pe categorii" sub lista de cheltuieli
 - Notificări (email/push) când se adaugă o cheltuială nouă
-- ✅ Export CSV — route handler `GET /groups/[id]/export?type=expenses|balances`
-  (protejat cu `requireGroupAccess`), serializare pură test-first în
+- ✅ Export CSV & PDF — route handler
+  `GET /groups/[id]/export?type=expenses|balances&format=csv|pdf`
+  (protejat cu `requireGroupAccess`). CSV: serializare pură test-first în
   `src/lib/csv.ts` (RFC 4180), sume cu punct zecimal + BOM UTF-8 pentru Excel.
-  PDF încă nu.
+  PDF: writer minimal zero-dependency test-first în `src/lib/pdf.ts` (PDF 1.4,
+  Helvetica standard cu `WinAnsiEncoding`, tabel pe pagini A4 landscape,
+  diacritice care lipsesc din CP1252 pliate la echivalent simplu).
 - ✅ Rezumat vizual pe grup — agregări pure test-first în `src/lib/summary.ts`
   (`groupTotal`, `spendByCategory`, `spendByPayer`); componenta `GroupSummary`
   randează bare CSS (fără bibliotecă de charts): total grup, cheltuieli pe
