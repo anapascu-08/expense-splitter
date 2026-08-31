@@ -46,3 +46,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# claude code local agent worktrees
+/.claude/
