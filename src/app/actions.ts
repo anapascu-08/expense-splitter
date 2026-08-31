@@ -13,6 +13,7 @@ import {
 } from "@/lib/money";
 import { isExpenseCategory } from "@/lib/categories";
 import { isCurrency, DEFAULT_CURRENCY } from "@/lib/currencies";
+import type { FormState } from "@/app/form-state";
 import { requireUser } from "@/lib/auth";
 import { requireGroupAccess } from "@/lib/access";
 
@@ -89,10 +90,13 @@ function readCurrency(
   return { currency, rateMicros };
 }
 
-export async function createGroup(formData: FormData) {
+export async function createGroup(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) return { error: "Dă un nume grupului." };
 
   const rawCurrency = String(formData.get("baseCurrency") ?? "");
   const baseCurrency = isCurrency(rawCurrency) ? rawCurrency : DEFAULT_CURRENCY;
@@ -130,13 +134,24 @@ export async function deleteGroup(groupId: string) {
   redirect("/");
 }
 
-export async function addMember(groupId: string, formData: FormData) {
+export async function addMember(
+  groupId: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
   await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) return { error: "Numele membrului e obligatoriu." };
+
+  const clash = await prisma.member.findFirst({
+    where: { groupId, name },
+    select: { id: true },
+  });
+  if (clash) return { error: `„${name}” există deja în grup.` };
 
   await prisma.member.create({ data: { groupId, name } });
   revalidatePath(`/groups/${groupId}`);
+  return { ok: `„${name}” a fost adăugat.` };
 }
 
 export async function updateMember(
@@ -182,63 +197,88 @@ export async function deleteMember(groupId: string, memberId: string) {
   revalidatePath(`/groups/${groupId}`);
 }
 
-export async function addExpense(groupId: string, formData: FormData) {
-  await requireGroupAccess(groupId);
+type ParsedExpense = {
+  description: string;
+  amount: number;
+  paidById: string;
+  split: { splitMode: string; participants: ParticipantWeight[] };
+  money: { currency: string; rateMicros: number };
+};
+
+// Shared field validation for the add / edit expense forms. Returns an error
+// string for the first problem, or the parsed values on success.
+function readExpense(
+  formData: FormData,
+  baseCurrency: string
+): { error: string } | ParsedExpense {
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
 
-  if (!description || amount <= 0 || !paidById) return;
+  if (!description) return { error: "Adaugă o descriere." };
+  if (amount <= 0) return { error: "Suma trebuie să fie mai mare ca zero." };
+  if (!paidById) return { error: "Alege cine a plătit." };
+
   const split = readSplit(formData, amount);
-  if (!split) return;
+  if (!split) return { error: "Împărțirea nu se potrivește cu suma." };
+
+  const money = readCurrency(formData, baseCurrency);
+  if (!money) return { error: "Pune un curs valutar pozitiv." };
+
+  return { description, amount, paidById, split, money };
+}
+
+export async function addExpense(
+  groupId: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireGroupAccess(groupId);
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     select: { baseCurrency: true },
   });
-  if (!group) return;
-  const money = readCurrency(formData, group.baseCurrency);
-  if (!money) return;
+  if (!group) return { error: "Grupul nu există." };
+
+  const parsed = readExpense(formData, group.baseCurrency);
+  if ("error" in parsed) return parsed;
 
   await prisma.expense.create({
     data: {
       groupId,
-      description,
-      amount,
-      paidById,
-      currency: money.currency,
-      rateMicros: money.rateMicros,
+      description: parsed.description,
+      amount: parsed.amount,
+      paidById: parsed.paidById,
+      currency: parsed.money.currency,
+      rateMicros: parsed.money.rateMicros,
       category: readCategory(formData),
-      splitMode: split.splitMode,
-      participants: { create: split.participants },
+      splitMode: parsed.split.splitMode,
+      participants: { create: parsed.split.participants },
     },
   });
 
   revalidatePath(`/groups/${groupId}`);
+  return { ok: "Cheltuială adăugată." };
 }
 
 export async function updateExpense(
   groupId: string,
   expenseId: string,
+  _prev: FormState,
   formData: FormData
-) {
+): Promise<FormState> {
   await requireGroupAccess(groupId);
-  const description = String(formData.get("description") ?? "").trim();
-  const amount = toBani(String(formData.get("amount") ?? "0"));
-  const paidById = String(formData.get("paidById") ?? "");
-
-  if (!description || amount <= 0 || !paidById) return;
-  const split = readSplit(formData, amount);
-  if (!split) return;
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId },
     select: { id: true, group: { select: { baseCurrency: true } } },
   });
-  if (!expense) return;
+  if (!expense) return { error: "Cheltuiala nu mai există." };
 
-  const money = readCurrency(formData, expense.group.baseCurrency);
-  if (!money) return;
+  const parsed = readExpense(formData, expense.group.baseCurrency);
+  if ("error" in parsed) return parsed;
+  const { description, amount, paidById, split, money } = parsed;
 
   await prisma.expense.update({
     where: { id: expenseId },

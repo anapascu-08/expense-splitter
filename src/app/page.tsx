@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { createGroup } from "./actions";
 import { SubmitButton } from "@/app/submit-button";
+import { FeedbackForm } from "@/app/feedback-form";
 import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@/lib/currencies";
 
 export default async function HomePage() {
@@ -50,7 +51,7 @@ export default async function HomePage() {
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Creează un grup nou</h2>
-        <form action={createGroup} className="flex flex-wrap gap-2">
+        <FeedbackForm action={createGroup} rowClassName="flex flex-wrap gap-2">
           <input
             type="text"
             name="name"
@@ -76,7 +77,7 @@ export default async function HomePage() {
           <SubmitButton variant="primary" pendingLabel="Se creează…">
             Creează
           </SubmitButton>
-        </form>
+        </FeedbackForm>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Valuta de bază nu se mai poate schimba după creare. Cheltuielile pot fi
           în alte valute, cu un curs introdus manual.

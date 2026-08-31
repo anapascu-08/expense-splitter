@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   formatBani,
@@ -12,6 +12,7 @@ import {
 import { splitAmount } from "@/lib/balances";
 import { EXPENSE_CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
 import { CURRENCY_CODES, currencySymbol } from "@/lib/currencies";
+import type { FormState } from "@/app/form-state";
 
 export type SplitMode = "EQUAL" | "EXACT" | "PERCENT" | "SHARES";
 
@@ -35,7 +36,7 @@ type Member = { id: string; name: string };
 
 type Props = {
   members: Member[];
-  action: (formData: FormData) => void;
+  action: (state: FormState, formData: FormData) => Promise<FormState>;
   submitLabel: string;
   baseCurrency: string;
   cancelHref?: string;
@@ -67,6 +68,19 @@ export function ExpenseForm({
   cancelHref,
   defaults,
 }: Props) {
+  const [state, formAction] = useActionState<FormState, FormData>(
+    action,
+    undefined
+  );
+  const [dismissed, setDismissed] = useState<FormState>(undefined);
+  useEffect(() => {
+    if (state && "ok" in state) {
+      const t = setTimeout(() => setDismissed(state), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
+  const showOk = state !== undefined && "ok" in state && state !== dismissed;
+
   const [description, setDescription] = useState(defaults?.description ?? "");
   const [amount, setAmount] = useState(defaults?.amount ?? "");
   const [paidById, setPaidById] = useState(
@@ -157,7 +171,7 @@ export function ExpenseForm({
   }
 
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={formAction} className="flex flex-col gap-3">
       <input
         type="text"
         name="description"
@@ -383,6 +397,17 @@ export function ExpenseForm({
           </Link>
         )}
       </div>
+
+      {state && "error" in state && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          {state.error}
+        </p>
+      )}
+      {showOk && state && "ok" in state && (
+        <p role="status" className="text-sm text-green-600 dark:text-green-400">
+          {state.ok}
+        </p>
+      )}
     </form>
   );
 }

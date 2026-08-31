@@ -14,7 +14,9 @@ describe("createGroup", () => {
     const { user } = await makeUser();
     await signIn(user.id);
 
-    const url = await catchRedirect(createGroup(formData({ name: "Trip" })));
+    const url = await catchRedirect(
+      createGroup(undefined, formData({ name: "Trip" }))
+    );
     const id = url.replace("/groups/", "");
 
     const group = await prisma.group.findUnique({
@@ -64,7 +66,11 @@ describe("addExpense", () => {
     await signIn(outsider.user.id);
 
     await expectNotFound(
-      addExpense(group.id, formData({ description: "x", amount: "10" }))
+      addExpense(
+        group.id,
+        undefined,
+        formData({ description: "x", amount: "10" })
+      )
     );
     expect(await prisma.expense.count()).toBe(0);
   });
@@ -79,6 +85,7 @@ describe("addExpense", () => {
 
     await addExpense(
       group.id,
+      undefined,
       formData({
         description: "Lunch",
         amount: "100",

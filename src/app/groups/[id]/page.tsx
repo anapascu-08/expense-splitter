@@ -21,6 +21,7 @@ import {
 } from "@/app/actions";
 import { ConfirmButton } from "@/app/confirm-button";
 import { SubmitButton } from "@/app/submit-button";
+import { FeedbackForm } from "@/app/feedback-form";
 import { ExpenseForm } from "@/app/expense-form";
 import { GroupSummary } from "@/app/group-summary";
 import {
@@ -213,7 +214,7 @@ export default async function GroupPage({
             })}
           </ul>
         )}
-        <form action={boundAddMember} className="flex gap-2">
+        <FeedbackForm action={boundAddMember} rowClassName="flex gap-2">
           <input
             type="text"
             name="name"
@@ -222,7 +223,7 @@ export default async function GroupPage({
             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
           />
           <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
-        </form>
+        </FeedbackForm>
       </section>
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
