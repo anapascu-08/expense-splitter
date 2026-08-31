@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { createGroup } from "./actions";
+import { SubmitButton } from "@/app/submit-button";
 import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@/lib/currencies";
 
 export default async function HomePage() {
@@ -72,12 +73,9 @@ export default async function HomePage() {
               ))}
             </select>
           </label>
-          <button
-            type="submit"
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-          >
+          <SubmitButton variant="primary" pendingLabel="Se creează…">
             Creează
-          </button>
+          </SubmitButton>
         </form>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Valuta de bază nu se mai poate schimba după creare. Cheltuielile pot fi

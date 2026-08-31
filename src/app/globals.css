@@ -12,6 +12,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* One accent colour for primary actions. Red stays reserved for destructive
+   actions, green/red only for the sign of a balance. */
+@theme {
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -22,5 +29,16 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Use the font loaded in layout.tsx (was hard-coded to Arial, which shadowed
+     it). Keeps a system stack as fallback while the webfont loads. */
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Visible keyboard focus everywhere, without affecting mouse clicks. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }

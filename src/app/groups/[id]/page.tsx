@@ -20,6 +20,7 @@ import {
   updateMember,
 } from "@/app/actions";
 import { ConfirmButton } from "@/app/confirm-button";
+import { SubmitButton } from "@/app/submit-button";
 import { ExpenseForm } from "@/app/expense-form";
 import { GroupSummary } from "@/app/group-summary";
 import {
@@ -125,12 +126,7 @@ export default async function GroupPage({
                   required
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
                 />
-                <button
-                  type="submit"
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-                >
-                  Salvează
-                </button>
+                <SubmitButton>Salvează</SubmitButton>
               </form>
               <form action={deleteGroup.bind(null, group.id)}>
                 <ConfirmButton
@@ -193,12 +189,7 @@ export default async function GroupPage({
                           required
                           className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-transparent dark:text-gray-100"
                         />
-                        <button
-                          type="submit"
-                          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-                        >
-                          Salvează
-                        </button>
+                        <SubmitButton>Salvează</SubmitButton>
                       </form>
                       {locked ? (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -230,12 +221,7 @@ export default async function GroupPage({
             required
             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
           />
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-          >
-            Adaugă membru
-          </button>
+          <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
         </form>
       </section>
 
@@ -265,12 +251,12 @@ export default async function GroupPage({
                     <form
                       action={revokeInvite.bind(null, group.id, invite.token)}
                     >
-                      <button
-                        type="submit"
-                        className="text-gray-400 transition hover:text-red-600 dark:hover:text-red-400"
+                      <SubmitButton
+                        pendingLabel="…"
+                        className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
                       >
                         revocă
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </li>
@@ -279,12 +265,9 @@ export default async function GroupPage({
           </ul>
         )}
         <form action={boundCreateInvite}>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-          >
+          <SubmitButton pendingLabel="Se generează…">
             Generează link de invitație
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -333,12 +316,12 @@ export default async function GroupPage({
                   <input type="hidden" name="fromId" value={t.fromId} />
                   <input type="hidden" name="toId" value={t.toId} />
                   <input type="hidden" name="amount" value={baniToInput(t.amount)} />
-                  <button
-                    type="submit"
-                    className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1 text-xs font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
+                  <SubmitButton
+                    pendingLabel="…"
+                    className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1 text-xs font-medium transition hover:border-gray-400 disabled:opacity-50 dark:border-gray-700 dark:hover:border-gray-500"
                   >
                     marchează achitat
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             ))}
@@ -437,12 +420,7 @@ export default async function GroupPage({
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent"
               />
             </label>
-            <button
-              type="submit"
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500"
-            >
-              Adaugă plată
-            </button>
+            <SubmitButton pendingLabel="Se adaugă…">Adaugă plată</SubmitButton>
           </form>
         )}
       </section>
