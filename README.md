@@ -9,19 +9,35 @@ urmează) sunt documentate în [`spec.md`](./spec.md).
 ## Stack
 - [Next.js](https://nextjs.org) (App Router) + TypeScript
 - Tailwind CSS
-- Prisma ORM + SQLite (fișier local, fără server de bază de date)
+- Prisma ORM + PostgreSQL (Neon la deploy; Postgres local prin Docker)
 
 ## Pornire locală
 
+Ai nevoie de un PostgreSQL local. Cel mai simplu, prin Docker:
+
+```bash
+docker run -d --name expense-pg \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=expense_splitter \
+  -p 5432:5432 postgres:16
+```
+
+Apoi:
+
 ```bash
 npm install
-cp .env.example .env
-npx prisma migrate dev
-npm run db:seed        # opțional: conturi + grup demo pentru testare
+cp .env.example .env          # valorile default se potrivesc cu comanda de mai sus
+npx prisma migrate deploy     # aplică migrațiile pe baza `expense_splitter`
+npm run db:seed               # opțional: conturi + grup demo pentru testare
 npm run dev
 ```
 
 Aplicația pornește pe [http://localhost:3000](http://localhost:3000).
+
+Pentru teste ai nevoie și de baza `expense_splitter_test`:
+
+```bash
+docker exec expense-pg createdb -U postgres expense_splitter_test
+```
 
 ### Conturi de test
 
@@ -39,37 +55,31 @@ Pentru mai multe conturi logate simultan folosește ferestre separate
 (normală + incognito) sau profile de browser diferite — sesiunea e un
 cookie per context de browser.
 
-`npm run db:reset` face drop la `dev.db`, reaplică migrațiile și rulează seed-ul.
+`npm run db:reset` face drop la schema, reaplică migrațiile și rulează seed-ul.
 
-Dacă ai deja `node_modules`, `.env` și baza de date create (de exemplu
-pe mașina pe care ai dezvoltat inițial), e suficient `npm run dev`.
+Dacă ai deja `node_modules`, `.env` și Postgres-ul pornit, e suficient
+`npm run dev`.
 
-### Baza de date SQLite
+### Baza de date
 
-Nu ai nevoie de Postgres sau de alt server local — baza de date e un
-singur fișier.
-
-- `.env` conține `DATABASE_URL="file:./dev.db"` (relativ la folderul
-  `prisma/`), deci fișierul e `prisma/dev.db`.
-- `npx prisma migrate dev` creează `prisma/dev.db`, aplică migrațiile din
-  `prisma/migrations/` și regenerează Prisma Client în `src/generated/prisma`.
-- `prisma/dev.db` e în `.gitignore` — fiecare dezvoltator își are propria
-  copie locală, cu propriile date de test.
+- `.env` conține `DATABASE_URL` (folosit de aplicație) și `DIRECT_URL`
+  (folosit doar de `prisma migrate`). Local pot fi identice; pe Vercel
+  `DATABASE_URL` e conexiunea *pooled* Neon, iar `DIRECT_URL` cea *unpooled*.
+- `npx prisma migrate deploy` aplică migrațiile din `prisma/migrations/`;
+  `npx prisma migrate dev --name <descriere>` creează o migrație nouă după ce
+  modifici `prisma/schema.prisma`.
+- `postinstall` rulează `prisma generate` (Prisma Client în `src/generated/prisma`,
+  gitignored).
 
 Comenzi utile:
 
 ```bash
 npx prisma studio            # UI web pentru inspectat/editat datele
-npx prisma migrate reset     # șterge dev.db, reaplică migrațiile de la zero
-npx prisma generate          # regenerează doar Prisma Client (după pull cu schema schimbată)
+npx prisma migrate reset     # drop schema + reaplică migrațiile de la zero
+npx prisma generate          # regenerează doar Prisma Client
 ```
 
-După ce modifici `prisma/schema.prisma`, rulează
-`npx prisma migrate dev --name <descriere>` ca să creezi o migrație nouă.
-
-> Postgres (Neon) se folosește doar la deploy pe Vercel și e izolat pe
-> branch-ul `deploy-postgres`. Pe `main` se lucrează în continuare pe SQLite.
-> Vezi [`spec.md`](./spec.md) și [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+> Pașii de deploy pe Vercel + Neon sunt în [`DEPLOY.md`](./DEPLOY.md).
 
 ## Teste & verificare
 
@@ -77,10 +87,11 @@ Lucrăm test-first (runner: [Vitest](https://vitest.dev)), pe două proiecte:
 
 - **unit** (`src/**/*.test.ts`) — logică pură din `src/lib/`, fără I/O.
 - **integration** (`src/**/*.integration.test.ts`) — `src/lib/access.ts`,
-  sesiunile din `src/lib/auth.ts` și server actions, rulate pe o bază SQLite
-  de test (`prisma/test.db`) cu `next/headers` · `next/navigation` · `next/cache`
-  mock-uite. Harness-ul e în `src/test/`; migrarea bazei de test se face automat
-  (`prisma migrate deploy`) în `globalSetup`.
+  sesiunile din `src/lib/auth.ts` și server actions, rulate pe o bază Postgres
+  de test (`TEST_DATABASE_URL`, default `expense_splitter_test` pe localhost) cu
+  `next/headers` · `next/navigation` · `next/cache` mock-uite. Harness-ul e în
+  `src/test/`; `globalSetup` face drop la schema și reaplică migrațiile la
+  fiecare rulare.
 
 ```bash
 npm test          # watch — bucla TDD (ambele proiecte)
@@ -88,8 +99,9 @@ npm run test:run  # o singură rulare
 npm run check     # tsc --noEmit && eslint && vitest run (rulează înainte de commit)
 ```
 
-CI (`.github/workflows/ci.yml`) rulează `npm run check` + `npm run build` la
-fiecare push pe `main` și la fiecare PR.
+CI (`.github/workflows/ci.yml`) pornește un serviciu `postgres:16`, aplică
+migrațiile și rulează `npm run check` + `next build` la fiecare push pe
+`main` / `deploy-postgres` și la fiecare PR.
 
 ## Structură
 

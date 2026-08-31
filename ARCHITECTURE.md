@@ -4,10 +4,10 @@ Document de referință pentru structura tehnică a aplicației. Pentru scopul
 funcțional și fazele de implementare vezi [`spec.md`](./spec.md); pentru
 pornire locală vezi [`README.md`](./README.md).
 
-> **Stare curentă:** local + `main` rulează pe **SQLite**. Migrarea pe
-> **PostgreSQL + deploy pe Vercel** e pregătită pe branch-ul
-> `deploy-postgres` și se aplică pe `main` chiar înainte de publicare
-> (vezi secțiunea [Build & deploy](#build--deploy)).
+> **Stare curentă:** branch-ul `deploy-postgres` rulează pe **PostgreSQL**
+> (local prin Docker, Neon la deploy pe Vercel) și se aduce pe `main` chiar
+> înainte de publicare. Pașii de dashboard Vercel: [`DEPLOY.md`](./DEPLOY.md).
+> Vezi și secțiunea [Build & deploy](#build--deploy).
 
 ## Privire de ansamblu
 
@@ -24,7 +24,7 @@ flowchart LR
     Actions["Server Actions<br/>src/app/actions.ts"]
     Logic["Logică de business<br/>src/lib/*"]
   end
-  DB[("Bază de date<br/>SQLite local · Postgres la deploy")]
+  DB[("PostgreSQL<br/>local: Docker · deploy: Neon")]
 
   Browser -- "GET (navigare)" --> RSC
   Browser -- "POST (submit formular)" --> Actions
@@ -41,8 +41,8 @@ flowchart LR
 | Framework | Next.js 16 (App Router, Turbopack) + TypeScript |
 | UI | React 19 Server Components, Tailwind CSS v4 |
 | Acces date | Prisma ORM 6 (generator `prisma-client`, output în `src/generated/prisma`) |
-| Bază de date | SQLite (`prisma/dev.db`) local și pe `main`; PostgreSQL / Neon la deploy (branch `deploy-postgres`) |
-| Hosting | local `next dev`; țintă de deploy: Vercel |
+| Bază de date | PostgreSQL — local prin Docker (`postgres:16`), Neon la deploy |
+| Hosting | local `next dev`; deploy: Vercel (plan Hobby) |
 
 ## Structură de directoare
 
@@ -62,15 +62,14 @@ src/
     money.ts              # toBani / formatBani (bani întregi, fără float)
   generated/prisma/       # client Prisma generat (gitignored, refăcut la `prisma generate`)
 prisma/
-  schema.prisma           # modelele de date
-  migrations/             # istoric migrații SQL
-  dev.db                  # baza SQLite locală (gitignored)
+  schema.prisma           # modelele de date (datasource: postgresql)
+  migrations/             # istoric migrații SQL (dialect Postgres)
 ```
 
-`src/lib/prisma.ts` rezolvă calea fișierului SQLite la un path absolut
-(`process.cwd()/prisma/dev.db`), fiindcă CLI-ul Prisma și clientul generat
-interpretează diferit căile relative `file:` — așa CLI-ul și aplicația
-folosesc același fișier.
+`src/lib/prisma.ts` e un singleton `PrismaClient` care citește
+`DATABASE_URL` din mediu (pooled Neon pe Vercel, Postgres local altfel).
+Singleton-ul e păstrat pe `globalThis` în afara producției ca `next dev` să
+nu deschidă o conexiune nouă la fiecare hot-reload.
 
 ## Fluxul unui request
 
@@ -185,10 +184,10 @@ plăți persistate (candidat pentru Faza 3).
 
 ## Build & deploy
 
-Rularea locală e `next dev` pe SQLite (vezi `README.md`). Publicarea pe
-Vercel + PostgreSQL trăiește pe branch-ul **`deploy-postgres`** și se aduce
-pe `main` printr-un `git revert` al commit-ului de revert (sau merge din
-branch) chiar înainte de deploy. Ce aduce acel branch:
+Rularea locală e `next dev` pe un Postgres local (vezi `README.md`).
+Publicarea pe Vercel + Neon trăiește pe branch-ul **`deploy-postgres`** și se
+aduce pe `main` prin merge chiar înainte de deploy. Pașii de dashboard sunt
+în [`DEPLOY.md`](./DEPLOY.md). Fluxul de build:
 
 ```mermaid
 flowchart LR
@@ -202,14 +201,17 @@ flowchart LR
   Build --> Deploy["Deploy → https://&lt;proiect&gt;.vercel.app"]
 ```
 
-- schema Prisma pe `provider = "postgresql"`, migrația `init` regenerată în
+- `prisma/schema.prisma` pe `provider = "postgresql"`, cu `url` (pooled) și
+  `directUrl` (unpooled, folosit de `migrate`); o singură migrație `init` în
   dialect Postgres;
-- `DATABASE_URL` vine din integrarea Neon a Vercel (injectat în toate
-  environment-urile, inclusiv la build — de asta `prisma migrate deploy`
-  poate rula în timpul build-ului);
-- `src/lib/prisma.ts` simplificat (fără rezolvarea de path SQLite);
-- paginile marcate `export const dynamic = "force-dynamic"` ca build-ul să
-  nu ceară conexiune la DB;
+- `DATABASE_URL` (pooled) + `DATABASE_URL_UNPOOLED` vin din integrarea Neon a
+  Vercel; `DIRECT_URL` se setează manual la valoarea unpooled, ca
+  `prisma migrate deploy` din pasul de build să aibă o conexiune directă;
+- `npm run build` = `prisma migrate deploy && next build`;
+- `src/lib/prisma.ts` citește doar `DATABASE_URL` din mediu (fără logică de
+  path SQLite);
+- paginile sunt oricum dinamice (`ƒ server-rendered on demand`), deci
+  `next build` nu deschide conexiune la DB;
 - clientul Prisma (`src/generated/prisma`, gitignored) se regenerează la
   fiecare build prin scriptul `postinstall`.
 
