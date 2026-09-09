@@ -108,17 +108,19 @@ describe("login", () => {
 
   it("ignores an off-site `next` and redirects home", async () => {
     await makeUser({ email: "safe@test.dev", password: "password123" });
-    const url = await catchRedirect(
-      login(
-        undefined,
-        formData({
-          email: "safe@test.dev",
-          password: "password123",
-          next: "//evil.com",
-        })
-      )
-    );
-    expect(url).toBe("/");
+    for (const next of ["//evil.com", "/\\evil.com", "https://evil.com"]) {
+      const url = await catchRedirect(
+        login(
+          undefined,
+          formData({
+            email: "safe@test.dev",
+            password: "password123",
+            next,
+          })
+        )
+      );
+      expect(url).toBe("/");
+    }
   });
 
   it("returns an error on a wrong password", async () => {

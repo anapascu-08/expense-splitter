@@ -24,6 +24,16 @@ describe("toCsv", () => {
   it("returns an empty string for no rows", () => {
     expect(toCsv([])).toBe("");
   });
+
+  it("neutralises leading formula characters (CSV injection)", () => {
+    expect(toCsv([["=1+1", "@SUM", "+cmd", "-cmd"]])).toBe(
+      "'=1+1;'@SUM;'+cmd;'-cmd"
+    );
+    // real numbers, negative amounts included, are left alone
+    expect(toCsv([["-50,00", "1234,56", "+7"]])).toBe("-50,00;1234,56;+7");
+    // still quoted if it also contains a quote (embedded quotes doubled)
+    expect(toCsv([['=HYPERLINK("x")']])).toBe(`"'=HYPERLINK(""x"")"`);
+  });
 });
 
 describe("expensesToCsv", () => {

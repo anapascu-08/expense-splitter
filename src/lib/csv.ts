@@ -8,10 +8,16 @@ import type { MemberBalance } from "@/lib/balances";
 // than RFC 4180's comma-separated / dot-decimal form.
 const DELIM = ";";
 
-// Quote a field if it contains the separator, a double-quote or a newline;
-// escape embedded quotes by doubling them. Rows are joined with CRLF.
+// Quote a field if it contains the separator, a double-quote or a newline
+// (escaping embedded quotes by doubling them), and neutralise spreadsheet
+// formula injection: a leading "=", "@", tab or CR, or a leading "+"/"-" that
+// isn't the start of a number, gets a "'" prefix so Excel treats the cell as
+// text. Real negative amounts like "-50,00" are left alone.
 function csvField(value: string): string {
-  return /[";\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  const looksNumeric = /^[+-]?\d/.test(value);
+  const armed = /^[=@\t\r]/.test(value) || (/^[+-]/.test(value) && !looksNumeric);
+  const v = armed ? `'${value}` : value;
+  return /[";\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
 // "1234.56" (from baniToInput / rateMicrosToInput) -> "1234,56" for the sheet.

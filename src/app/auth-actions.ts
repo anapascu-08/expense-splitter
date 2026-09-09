@@ -20,11 +20,14 @@ export type AuthState =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Only redirect to same-origin absolute paths, never to "//evil.com".
+// Only redirect to same-origin absolute paths. Reject protocol-relative
+// ("//evil.com") and the backslash variants ("/\evil.com", "\evil.com")
+// that browsers normalise to "//" when following a Location header.
 function safeNext(next: unknown): string {
-  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
-    ? next
-    : "/";
+  if (typeof next !== "string") return "/";
+  if (!next.startsWith("/")) return "/";
+  if (next.startsWith("//") || next.startsWith("/\\")) return "/";
+  return next;
 }
 
 export async function register(
