@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import {
   formatBani,
@@ -72,6 +72,12 @@ export function ExpenseForm({
     action,
     undefined
   );
+  const errorId = useId();
+  const invalidField = state && "error" in state ? state.field : undefined;
+  const invalid = (name: string) =>
+    invalidField === name
+      ? { "aria-invalid": true as const, "aria-describedby": errorId }
+      : {};
   const [dismissed, setDismissed] = useState<FormState>(undefined);
   useEffect(() => {
     if (state && "ok" in state) {
@@ -180,6 +186,7 @@ export function ExpenseForm({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className={inputClass}
+        {...invalid("description")}
       />
       <div className="flex gap-2">
         <input
@@ -191,6 +198,7 @@ export function ExpenseForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className={`${inputClass} flex-1`}
+          {...invalid("amount")}
         />
         <label className="flex flex-col text-sm">
           <span className="sr-only">Valută</span>
@@ -222,7 +230,10 @@ export function ExpenseForm({
             onChange={(e) => setRate(e.target.value)}
             className={inputClass}
             placeholder="ex: 4,9823"
-            aria-describedby="rate-hint"
+            aria-invalid={invalidField === "rate" || undefined}
+            aria-describedby={
+              invalidField === "rate" ? `rate-hint ${errorId}` : "rate-hint"
+            }
           />
           <span
             id="rate-hint"
@@ -252,6 +263,7 @@ export function ExpenseForm({
           value={paidById}
           onChange={(e) => setPaidById(e.target.value)}
           className={inputClass}
+          {...invalid("paidById")}
         >
           {members.map((member) => (
             <option key={member.id} value={member.id}>
@@ -399,7 +411,11 @@ export function ExpenseForm({
       </div>
 
       {state && "error" in state && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p
+          id={errorId}
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400"
+        >
           {state.error}
         </p>
       )}

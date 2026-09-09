@@ -27,7 +27,10 @@ describe("register", () => {
       undefined,
       formData({ name: "X", email: "dup@test.dev", password: "password123" })
     );
-    expect(state).toEqual({ error: "Există deja un cont cu acest email." });
+    expect(state).toEqual({
+      error: "Există deja un cont cu acest email.",
+      field: "email",
+    });
   });
 
   it("rejects a malformed email", async () => {
@@ -35,7 +38,7 @@ describe("register", () => {
       undefined,
       formData({ name: "X", email: "nope", password: "password123" })
     );
-    expect(state).toEqual({ error: "Email invalid." });
+    expect(state).toEqual({ error: "Email invalid.", field: "email" });
   });
 
   it("rejects a short password", async () => {
@@ -45,6 +48,7 @@ describe("register", () => {
     );
     expect(state).toEqual({
       error: "Parola trebuie să aibă minim 8 caractere.",
+      field: "password",
     });
   });
 });
@@ -82,7 +86,10 @@ describe("login", () => {
       undefined,
       formData({ email: "wrong@test.dev", password: "nope" })
     );
-    expect(state).toEqual({ error: "Email sau parolă greșite." });
+    expect(state).toEqual({
+      error: "Email sau parolă greșite.",
+      field: ["email", "password"],
+    });
     expect(await getCurrentUser()).toBeNull();
   });
 });

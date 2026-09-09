@@ -5,6 +5,7 @@ import {
   deleteGroup,
   addExpense,
   addMember as addMemberAction,
+  addPayment,
   acceptInvite,
 } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +38,7 @@ describe("createGroup", () => {
 
     const state = await createGroup(undefined, formData({ name: "  " }));
 
-    expect(state).toEqual({ error: "Dă un nume grupului." });
+    expect(state).toEqual({ error: "Dă un nume grupului.", field: "name" });
     expect(await prisma.group.count()).toBe(0);
   });
 });
@@ -106,7 +107,10 @@ describe("form-level validation feedback", () => {
       undefined,
       formData({ name: "Alice" })
     );
-    expect(dup).toEqual({ error: '„Alice” există deja în grup.' });
+    expect(dup).toEqual({
+      error: '„Alice” există deja în grup.',
+      field: "name",
+    });
 
     const ok = await addMemberAction(
       group.id,
@@ -127,8 +131,55 @@ describe("form-level validation feedback", () => {
       undefined,
       formData({ description: "", amount: "10" })
     );
-    expect(state).toEqual({ error: "Adaugă o descriere." });
+    expect(state).toEqual({
+      error: "Adaugă o descriere.",
+      field: "description",
+    });
     expect(await prisma.expense.count()).toBe(0);
+  });
+
+  it("addPayment flags both fromId and toId when they're the same member", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+
+    const state = await addPayment(
+      group.id,
+      undefined,
+      formData({ fromId: a.id, toId: a.id, amount: "10" })
+    );
+
+    expect(state).toEqual({
+      error: "Plătitorul și beneficiarul trebuie să fie diferiți.",
+      field: ["fromId", "toId"],
+    });
+    expect(await prisma.payment.count()).toBe(0);
+  });
+
+  it("addPayment flags amount for a zero amount", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const b = await prisma.member.create({
+      data: { groupId: group.id, name: "B" },
+    });
+
+    const state = await addPayment(
+      group.id,
+      undefined,
+      formData({ fromId: a.id, toId: b.id, amount: "0" })
+    );
+
+    expect(state).toEqual({
+      error: "Suma trebuie să fie mai mare ca zero.",
+      field: "amount",
+    });
   });
 });
 

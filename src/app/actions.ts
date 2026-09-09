@@ -96,7 +96,7 @@ export async function createGroup(
 ): Promise<FormState> {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Dă un nume grupului." };
+  if (!name) return { error: "Dă un nume grupului.", field: "name" };
 
   const rawCurrency = String(formData.get("baseCurrency") ?? "");
   const baseCurrency = isCurrency(rawCurrency) ? rawCurrency : DEFAULT_CURRENCY;
@@ -122,7 +122,8 @@ export async function updateGroup(
     return { error: "Doar owner-ul poate redenumi grupul." };
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Numele grupului nu poate fi gol." };
+  if (!name)
+    return { error: "Numele grupului nu poate fi gol.", field: "name" };
 
   await prisma.group.update({ where: { id: groupId }, data: { name } });
   revalidatePath(`/groups/${groupId}`);
@@ -155,13 +156,15 @@ export async function addMember(
 ): Promise<FormState> {
   await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Numele membrului e obligatoriu." };
+  if (!name)
+    return { error: "Numele membrului e obligatoriu.", field: "name" };
 
   const clash = await prisma.member.findFirst({
     where: { groupId, name },
     select: { id: true },
   });
-  if (clash) return { error: `„${name}” există deja în grup.` };
+  if (clash)
+    return { error: `„${name}” există deja în grup.`, field: "name" };
 
   await prisma.member.create({ data: { groupId, name } });
   revalidatePath(`/groups/${groupId}`);
@@ -176,13 +179,15 @@ export async function updateMember(
 ): Promise<FormState> {
   await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Numele membrului nu poate fi gol." };
+  if (!name)
+    return { error: "Numele membrului nu poate fi gol.", field: "name" };
 
   const clash = await prisma.member.findFirst({
     where: { groupId, name, id: { not: memberId } },
     select: { id: true },
   });
-  if (clash) return { error: `„${name}” există deja în grup.` };
+  if (clash)
+    return { error: `„${name}” există deja în grup.`, field: "name" };
 
   // Scope by groupId so a member can only be renamed from its own group.
   await prisma.member.updateMany({
@@ -231,20 +236,22 @@ type ParsedExpense = {
 function readExpense(
   formData: FormData,
   baseCurrency: string
-): { error: string } | ParsedExpense {
+): { error: string; field?: string } | ParsedExpense {
   const description = String(formData.get("description") ?? "").trim();
   const amount = toBani(String(formData.get("amount") ?? "0"));
   const paidById = String(formData.get("paidById") ?? "");
 
-  if (!description) return { error: "Adaugă o descriere." };
-  if (amount <= 0) return { error: "Suma trebuie să fie mai mare ca zero." };
-  if (!paidById) return { error: "Alege cine a plătit." };
+  if (!description)
+    return { error: "Adaugă o descriere.", field: "description" };
+  if (amount <= 0)
+    return { error: "Suma trebuie să fie mai mare ca zero.", field: "amount" };
+  if (!paidById) return { error: "Alege cine a plătit.", field: "paidById" };
 
   const split = readSplit(formData, amount);
   if (!split) return { error: "Împărțirea nu se potrivește cu suma." };
 
   const money = readCurrency(formData, baseCurrency);
-  if (!money) return { error: "Pune un curs valutar pozitiv." };
+  if (!money) return { error: "Pune un curs valutar pozitiv.", field: "rate" };
 
   return { description, amount, paidById, split, money };
 }
@@ -338,17 +345,28 @@ export async function addPayment(
   const toId = String(formData.get("toId") ?? "");
   const amount = toBani(String(formData.get("amount") ?? "0"));
 
-  if (!fromId || !toId) return { error: "Alege cine plătește și cui." };
+  if (!fromId || !toId)
+    return {
+      error: "Alege cine plătește și cui.",
+      field: ["fromId", "toId"],
+    };
   if (fromId === toId)
-    return { error: "Plătitorul și beneficiarul trebuie să fie diferiți." };
-  if (amount <= 0) return { error: "Suma trebuie să fie mai mare ca zero." };
+    return {
+      error: "Plătitorul și beneficiarul trebuie să fie diferiți.",
+      field: ["fromId", "toId"],
+    };
+  if (amount <= 0)
+    return { error: "Suma trebuie să fie mai mare ca zero.", field: "amount" };
 
   // Both parties must belong to this group.
   const membersInGroup = await prisma.member.count({
     where: { groupId, id: { in: [fromId, toId] } },
   });
   if (membersInGroup !== 2)
-    return { error: "Membru invalid pentru acest grup." };
+    return {
+      error: "Membru invalid pentru acest grup.",
+      field: ["fromId", "toId"],
+    };
 
   await prisma.payment.create({
     data: { groupId, fromId, toId, amount },

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import type { AuthState } from "@/app/auth-actions";
 
 type Props = {
@@ -17,14 +17,33 @@ export function AuthForm({ mode, action }: Props) {
     action,
     undefined
   );
+  const errorId = useId();
   const isRegister = mode === "register";
+
+  const invalidFields = new Set(
+    state?.field
+      ? Array.isArray(state.field)
+        ? state.field
+        : [state.field]
+      : []
+  );
+  const invalid = (name: string) =>
+    invalidFields.has(name)
+      ? { "aria-invalid": true as const, "aria-describedby": errorId }
+      : {};
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {isRegister && (
         <label className="flex flex-col gap-1 text-sm">
           Nume
-          <input name="name" type="text" required className={inputClass} />
+          <input
+            name="name"
+            type="text"
+            required
+            className={inputClass}
+            {...invalid("name")}
+          />
         </label>
       )}
       <label className="flex flex-col gap-1 text-sm">
@@ -35,6 +54,7 @@ export function AuthForm({ mode, action }: Props) {
           autoComplete="email"
           required
           className={inputClass}
+          {...invalid("email")}
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
@@ -46,11 +66,17 @@ export function AuthForm({ mode, action }: Props) {
           required
           minLength={isRegister ? 8 : undefined}
           className={inputClass}
+          {...invalid("password")}
         />
       </label>
 
       {state?.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p
+          id={errorId}
+          className="text-sm text-red-600 dark:text-red-400"
+        >
+          {state.error}
+        </p>
       )}
 
       <button

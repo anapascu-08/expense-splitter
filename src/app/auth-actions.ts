@@ -10,7 +10,9 @@ import {
   destroySession,
 } from "@/lib/auth";
 
-export type AuthState = { error: string } | undefined;
+export type AuthState =
+  | { error: string; field?: string | string[] }
+  | undefined;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,10 +33,14 @@ export async function register(
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!name) return { error: "Numele e obligatoriu." };
-  if (!EMAIL_RE.test(email)) return { error: "Email invalid." };
+  if (!name) return { error: "Numele e obligatoriu.", field: "name" };
+  if (!EMAIL_RE.test(email))
+    return { error: "Email invalid.", field: "email" };
   if (password.length < 8)
-    return { error: "Parola trebuie să aibă minim 8 caractere." };
+    return {
+      error: "Parola trebuie să aibă minim 8 caractere.",
+      field: "password",
+    };
 
   const passwordHash = await hashPassword(password);
   try {
@@ -48,7 +54,7 @@ export async function register(
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
     ) {
-      return { error: "Există deja un cont cu acest email." };
+      return { error: "Există deja un cont cu acest email.", field: "email" };
     }
     throw err;
   }
@@ -68,7 +74,10 @@ export async function login(
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return { error: "Email sau parolă greșite." };
+    return {
+      error: "Email sau parolă greșite.",
+      field: ["email", "password"],
+    };
   }
 
   await createSession(user.id);
