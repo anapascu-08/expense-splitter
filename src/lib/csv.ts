@@ -2,16 +2,25 @@ import { baniToInput, rateMicrosToInput, convertToBase } from "@/lib/money";
 import { categoryLabel } from "@/lib/categories";
 import type { MemberBalance } from "@/lib/balances";
 
-// RFC 4180: quote a field if it contains a comma, double-quote or newline;
+// The app is Romanian throughout (formatBani -> "1.234,56"), and spreadsheets
+// in a comma-decimal locale expect ";" as the field separator and "," as the
+// decimal mark. So this writes ";"-separated rows with comma decimals rather
+// than RFC 4180's comma-separated / dot-decimal form.
+const DELIM = ";";
+
+// Quote a field if it contains the separator, a double-quote or a newline;
 // escape embedded quotes by doubling them. Rows are joined with CRLF.
 function csvField(value: string): string {
-  return /[",\n\r]/.test(value)
-    ? `"${value.replace(/"/g, '""')}"`
-    : value;
+  return /[";\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+// "1234.56" (from baniToInput / rateMicrosToInput) -> "1234,56" for the sheet.
+function roNum(value: string): string {
+  return value.replace(".", ",");
 }
 
 export function toCsv(rows: string[][]): string {
-  return rows.map((row) => row.map(csvField).join(",")).join("\r\n");
+  return rows.map((row) => row.map(csvField).join(DELIM)).join("\r\n");
 }
 
 export const SPLIT_MODE_LABEL: Record<string, string> = {
@@ -56,10 +65,10 @@ export function expensesToCsv(
   const rows = expenses.map((e) => [
     isoDate(e.createdAt),
     e.description,
-    baniToInput(e.amount),
+    roNum(baniToInput(e.amount)),
     e.currency,
-    rateMicrosToInput(e.rateMicros),
-    baniToInput(convertToBase(e.amount, e.rateMicros)),
+    roNum(rateMicrosToInput(e.rateMicros)),
+    roNum(baniToInput(convertToBase(e.amount, e.rateMicros))),
     e.paidByName,
     categoryLabel(e.category) ?? "",
     SPLIT_MODE_LABEL[e.splitMode] ?? e.splitMode,
@@ -82,11 +91,11 @@ export function balancesToCsv(
   ];
   const rows = balances.map((b) => [
     b.name,
-    baniToInput(b.paid),
-    baniToInput(b.owed),
-    baniToInput(b.sent),
-    baniToInput(b.received),
-    baniToInput(b.net),
+    roNum(baniToInput(b.paid)),
+    roNum(baniToInput(b.owed)),
+    roNum(baniToInput(b.sent)),
+    roNum(baniToInput(b.received)),
+    roNum(baniToInput(b.net)),
   ]);
   return toCsv([header, ...rows]);
 }

@@ -1,4 +1,7 @@
 import { baniToInput, rateMicrosToInput, convertToBase } from "@/lib/money";
+
+// Romanian report -> comma decimals, matching the CSV export.
+const roNum = (v: string) => v.replace(".", ",");
 import { categoryLabel } from "@/lib/categories";
 import type { MemberBalance } from "@/lib/balances";
 import { SPLIT_MODE_LABEL, isoDate, type ExportExpense } from "@/lib/csv";
@@ -264,10 +267,10 @@ export function expensesToPdf(
   const rows = expenses.map((e) => [
     isoDate(e.createdAt),
     e.description,
-    baniToInput(e.amount),
+    roNum(baniToInput(e.amount)),
     e.currency,
-    rateMicrosToInput(e.rateMicros),
-    baniToInput(convertToBase(e.amount, e.rateMicros)),
+    roNum(rateMicrosToInput(e.rateMicros)),
+    roNum(baniToInput(convertToBase(e.amount, e.rateMicros))),
     e.paidByName,
     categoryLabel(e.category) ?? "",
     SPLIT_MODE_LABEL[e.splitMode] ?? e.splitMode,
@@ -299,11 +302,11 @@ export function balancesToPdf(
 ): Uint8Array<ArrayBuffer> {
   const rows = balances.map((b) => [
     b.name,
-    baniToInput(b.paid),
-    baniToInput(b.owed),
-    baniToInput(b.sent),
-    baniToInput(b.received),
-    baniToInput(b.net),
+    roNum(baniToInput(b.paid)),
+    roNum(baniToInput(b.owed)),
+    roNum(baniToInput(b.sent)),
+    roNum(baniToInput(b.received)),
+    roNum(baniToInput(b.net)),
   ]);
   return renderTablePdf({ title, columns: balanceColumns(baseCurrency), rows });
 }

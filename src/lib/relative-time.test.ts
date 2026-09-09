@@ -14,16 +14,19 @@ describe("formatRelativeTime", () => {
     );
   });
 
-  it("counts minutes, singular and plural", () => {
+  it("counts minutes with Romanian singular / plural / 'de' plural", () => {
     expect(formatRelativeTime(minutesAgo(1), NOW)).toBe("acum 1 minut");
     expect(formatRelativeTime(minutesAgo(5), NOW)).toBe("acum 5 minute");
-    expect(formatRelativeTime(minutesAgo(59), NOW)).toBe("acum 59 minute");
+    expect(formatRelativeTime(minutesAgo(19), NOW)).toBe("acum 19 minute");
+    expect(formatRelativeTime(minutesAgo(20), NOW)).toBe("acum 20 de minute");
+    expect(formatRelativeTime(minutesAgo(59), NOW)).toBe("acum 59 de minute");
   });
 
-  it("counts hours, singular and plural", () => {
+  it("counts hours with Romanian singular / plural / 'de' plural", () => {
     expect(formatRelativeTime(hoursAgo(1), NOW)).toBe("acum 1 oră");
     expect(formatRelativeTime(hoursAgo(3), NOW)).toBe("acum 3 ore");
-    expect(formatRelativeTime(hoursAgo(23), NOW)).toBe("acum 23 ore");
+    expect(formatRelativeTime(hoursAgo(19), NOW)).toBe("acum 19 ore");
+    expect(formatRelativeTime(hoursAgo(23), NOW)).toBe("acum 23 de ore");
   });
 
   it("counts days, singular and plural, up to a week", () => {

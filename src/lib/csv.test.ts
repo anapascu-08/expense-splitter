@@ -3,18 +3,22 @@ import { toCsv, expensesToCsv, balancesToCsv } from "@/lib/csv";
 import type { MemberBalance } from "@/lib/balances";
 
 describe("toCsv", () => {
-  it("joins fields with commas and rows with CRLF", () => {
-    expect(toCsv([["a", "b"], ["c", "d"]])).toBe("a,b\r\nc,d");
+  it("joins fields with semicolons and rows with CRLF", () => {
+    expect(toCsv([["a", "b"], ["c", "d"]])).toBe("a;b\r\nc;d");
   });
 
-  it("quotes fields containing a comma, quote, or newline (RFC 4180)", () => {
-    expect(toCsv([["a,b", "c"]])).toBe('"a,b",c');
+  it("quotes fields containing the separator, a quote, or a newline", () => {
+    expect(toCsv([["a;b", "c"]])).toBe('"a;b";c');
     expect(toCsv([['he said "hi"']])).toBe('"he said ""hi"""');
     expect(toCsv([["line1\nline2"]])).toBe('"line1\nline2"');
   });
 
+  it("does not quote a field that only contains a comma", () => {
+    expect(toCsv([["a,b", "c"]])).toBe("a,b;c");
+  });
+
   it("does not quote plain fields and preserves surrounding spaces", () => {
-    expect(toCsv([[" padded ", "plain"]])).toBe(" padded ,plain");
+    expect(toCsv([[" padded ", "plain"]])).toBe(" padded ;plain");
   });
 
   it("returns an empty string for no rows", () => {
@@ -23,7 +27,7 @@ describe("toCsv", () => {
 });
 
 describe("expensesToCsv", () => {
-  it("writes a header plus one row per expense, with currency, rate and base-currency amount", () => {
+  it("writes a header plus one row per expense, with comma decimals", () => {
     const csv = expensesToCsv(
       [
         {
@@ -53,14 +57,15 @@ describe("expensesToCsv", () => {
     );
     const lines = csv.split("\r\n");
     expect(lines[0]).toBe(
-      "Data,Descriere,Sumă,Valută,Curs,Sumă (RON),Plătit de,Categorie,Împărțire,Participanți"
+      "Data;Descriere;Sumă;Valută;Curs;Sumă (RON);Plătit de;Categorie;Împărțire;Participanți"
     );
     expect(lines[1]).toBe(
-      '2026-08-28,Cazare,300.00,RON,1,300.00,Alice,Cazare,egal,"Alice, Bob, Cristi"'
+      "2026-08-28;Cazare;300,00;RON;1;300,00;Alice;Cazare;egal;Alice, Bob, Cristi"
     );
-    // foreign currency: rate shown trimmed, converted amount in the base currency
+    // foreign currency: rate trimmed, converted amount in the base currency;
+    // the comma in "Benzină, plin" no longer needs quoting (";" is the sep)
     expect(lines[2]).toBe(
-      '2026-08-29,"Benzină, plin",120.00,EUR,4.9823,597.88,Bob,,cote,"Alice, Bob"'
+      "2026-08-29;Benzină, plin;120,00;EUR;4,9823;597,88;Bob;;cote;Alice, Bob"
     );
   });
 
@@ -80,19 +85,19 @@ describe("balancesToCsv", () => {
     { memberId: "b", name: "Bob", paid: 0, owed: 10000, sent: 5000, received: 0, net: -5000 },
   ];
 
-  it("writes a header plus one row per member, with signed net", () => {
+  it("writes a header plus one row per member, with signed net and comma decimals", () => {
     const lines = balancesToCsv(balances, "RON").split("\r\n");
     expect(lines[0]).toBe(
-      "Membru,Plătit (RON),Datorat (RON),Trimis (RON),Primit (RON),Net (RON)"
+      "Membru;Plătit (RON);Datorat (RON);Trimis (RON);Primit (RON);Net (RON)"
     );
-    expect(lines[1]).toBe("Alice,300.00,100.00,0.00,50.00,150.00");
-    expect(lines[2]).toBe("Bob,0.00,100.00,50.00,0.00,-50.00");
+    expect(lines[1]).toBe("Alice;300,00;100,00;0,00;50,00;150,00");
+    expect(lines[2]).toBe("Bob;0,00;100,00;50,00;0,00;-50,00");
   });
 
   it("labels the money columns with the group's base currency", () => {
     const [header] = balancesToCsv(balances, "EUR").split("\r\n");
     expect(header).toBe(
-      "Membru,Plătit (EUR),Datorat (EUR),Trimis (EUR),Primit (EUR),Net (EUR)"
+      "Membru;Plătit (EUR);Datorat (EUR);Trimis (EUR);Primit (EUR);Net (EUR)"
     );
   });
 });
