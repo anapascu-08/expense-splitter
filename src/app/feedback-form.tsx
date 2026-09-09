@@ -47,12 +47,19 @@ type Props = {
   children: ReactNode;
   /** Extra classes for the inner row that wraps the caller's fields. */
   rowClassName?: string;
+  /** Keep the success note on screen instead of fading it after ~3s. */
+  stickyOk?: boolean;
 };
 
 // Wraps a plain Server Action form and shows its result inline: the error
 // text under the fields, or a discreet success note that fades after a moment.
 // React resets the (uncontrolled) fields itself once the action resolves.
-export function FeedbackForm({ action, children, rowClassName }: Props) {
+export function FeedbackForm({
+  action,
+  children,
+  rowClassName,
+  stickyOk = false,
+}: Props) {
   const [state, formAction] = useActionState<FormState, FormData>(
     action,
     undefined
@@ -63,11 +70,11 @@ export function FeedbackForm({ action, children, rowClassName }: Props) {
   // from one that has already timed out.
   const [dismissed, setDismissed] = useState<FormState>(undefined);
   useEffect(() => {
-    if (state && "ok" in state) {
+    if (!stickyOk && state && "ok" in state) {
       const t = setTimeout(() => setDismissed(state), 3000);
       return () => clearTimeout(t);
     }
-  }, [state]);
+  }, [state, stickyOk]);
   const showOk = state !== undefined && "ok" in state && state !== dismissed;
 
   const invalidFields =

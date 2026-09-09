@@ -20,6 +20,7 @@ export default async function ForgotPasswordPage() {
       <FeedbackForm
         action={requestPasswordReset}
         rowClassName="flex flex-col gap-3"
+        stickyOk
       >
         <label className="flex flex-col gap-1 text-sm">
           Email

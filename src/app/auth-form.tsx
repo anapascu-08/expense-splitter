@@ -89,6 +89,7 @@ export function AuthForm({ mode, action, next }: Props) {
       {state?.error && (
         <p
           id={errorId}
+          role="alert"
           className="text-sm text-red-600 dark:text-red-400"
         >
           {state.error}
