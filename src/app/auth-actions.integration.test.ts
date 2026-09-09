@@ -163,7 +163,7 @@ describe("resetPassword", () => {
     const token = await createPasswordResetToken(user.id);
 
     const url = await catchRedirect(
-      resetPassword(token, undefined, formData({ password: "newpassword123" }))
+      resetPassword(undefined, formData({ password: "newpassword123", token }))
     );
 
     expect(url).toBe("/");
@@ -180,7 +180,7 @@ describe("resetPassword", () => {
     const token = await createPasswordResetToken(user.id);
 
     await catchRedirect(
-      resetPassword(token, undefined, formData({ password: "newpassword123" }))
+      resetPassword(undefined, formData({ password: "newpassword123", token }))
     );
 
     // The old session row is gone; only the fresh one from resetPassword's
@@ -193,9 +193,8 @@ describe("resetPassword", () => {
     const token = await createPasswordResetToken(user.id);
 
     const state = await resetPassword(
-      token,
       undefined,
-      formData({ password: "short" })
+      formData({ password: "short", token })
     );
 
     expect(state).toEqual({
@@ -204,16 +203,15 @@ describe("resetPassword", () => {
     });
     // Still usable afterwards — the failed attempt shouldn't have burned it.
     const url = await catchRedirect(
-      resetPassword(token, undefined, formData({ password: "longenough1" }))
+      resetPassword(undefined, formData({ password: "longenough1", token }))
     );
     expect(url).toBe("/");
   });
 
   it("rejects an unknown or already-used token", async () => {
     const state = await resetPassword(
-      "bogus-token",
       undefined,
-      formData({ password: "longenough1" })
+      formData({ password: "longenough1", token: "bogus-token" })
     );
     expect(state).toEqual({
       error: "Linkul de resetare a expirat sau a fost deja folosit.",

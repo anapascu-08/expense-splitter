@@ -134,10 +134,12 @@ export async function requestPasswordReset(
 }
 
 export async function resetPassword(
-  token: string,
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
+  // `token` rides along as a hidden field rather than a bound arg — see the
+  // note in `login` above (a per-render .bind() breaks useActionState).
+  const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   if (password.length < 8)
     return {

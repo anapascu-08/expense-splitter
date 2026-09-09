@@ -6,9 +6,10 @@ import { SubmitButton } from "@/app/submit-button";
 
 type Props = {
   action: (state: AuthState, formData: FormData) => Promise<AuthState>;
+  token: string;
 };
 
-export function ResetPasswordForm({ action }: Props) {
+export function ResetPasswordForm({ action, token }: Props) {
   const [state, formAction] = useActionState<AuthState, FormData>(
     action,
     undefined
@@ -21,6 +22,7 @@ export function ResetPasswordForm({ action }: Props) {
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <input type="hidden" name="token" value={token} />
       <label className="flex flex-col gap-1 text-sm">
         Parolă nouă
         <input

@@ -28,8 +28,6 @@ export default async function ResetPasswordPage({
     );
   }
 
-  const boundReset = resetPassword.bind(null, token);
-
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
       <header>
@@ -38,7 +36,7 @@ export default async function ResetPasswordPage({
           Alege o parolă nouă pentru contul tău.
         </p>
       </header>
-      <ResetPasswordForm action={boundReset} />
+      <ResetPasswordForm action={resetPassword} token={token} />
     </main>
   );
 }
