@@ -5,8 +5,14 @@ import {
   updateMember,
   deleteGroup,
   addExpense,
+  updateExpense,
+  deleteExpense,
   addMember as addMemberAction,
   addPayment,
+  deletePayment,
+  deleteMember,
+  createInvite,
+  revokeInvite,
   acceptInvite,
 } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
@@ -460,6 +466,144 @@ describe("addExpense", () => {
     expect(expense?.description).toBe("Lunch");
     expect(expense?.amount).toBe(10000);
     expect(expense?.participants).toHaveLength(1);
+  });
+});
+
+describe("permissions: member vs owner", () => {
+  async function setup() {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const memberUser = await makeUser();
+    await addMember(group.id, memberUser.user.id); // role "member"
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const b = await prisma.member.create({
+      data: { groupId: group.id, name: "B" },
+    });
+    return { owner, group, memberUser, a, b };
+  }
+
+  function expenseForm(groupId: string, paidById: string, participantId: string) {
+    return formData({
+      description: "x",
+      amount: "10",
+      paidById,
+      splitMode: "EQUAL",
+      participantIds: [participantId],
+      groupId,
+    });
+  }
+
+  it("a member can delete an expense they added", async () => {
+    const { group, memberUser, a } = await setup();
+    await signIn(memberUser.user.id);
+    await addExpense(undefined, expenseForm(group.id, a.id, a.id));
+    const exp = await prisma.expense.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await deleteExpense(group.id, exp.id);
+
+    expect(await prisma.expense.count({ where: { groupId: group.id } })).toBe(0);
+  });
+
+  it("a member cannot delete an expense someone else added", async () => {
+    const { owner, group, memberUser, a } = await setup();
+    await signIn(owner.user.id);
+    await addExpense(undefined, expenseForm(group.id, a.id, a.id));
+    const exp = await prisma.expense.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await signIn(memberUser.user.id);
+    await deleteExpense(group.id, exp.id);
+
+    expect(await prisma.expense.count({ where: { groupId: group.id } })).toBe(1);
+  });
+
+  it("the owner can delete an expense a member added", async () => {
+    const { owner, group, memberUser, a } = await setup();
+    await signIn(memberUser.user.id);
+    await addExpense(undefined, expenseForm(group.id, a.id, a.id));
+    const exp = await prisma.expense.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await signIn(owner.user.id);
+    await deleteExpense(group.id, exp.id);
+
+    expect(await prisma.expense.count({ where: { groupId: group.id } })).toBe(0);
+  });
+
+  it("updateExpense refuses a member who did not add the expense", async () => {
+    const { owner, group, memberUser, a } = await setup();
+    await signIn(owner.user.id);
+    await addExpense(undefined, expenseForm(group.id, a.id, a.id));
+    const exp = await prisma.expense.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await signIn(memberUser.user.id);
+    const state = await updateExpense(
+      group.id,
+      exp.id,
+      undefined,
+      expenseForm(group.id, a.id, a.id)
+    );
+
+    expect(state).toEqual({
+      error: "Doar cine a adăugat cheltuiala sau owner-ul o pot edita.",
+    });
+  });
+
+  it("a member cannot delete a payment someone else recorded", async () => {
+    const { owner, group, memberUser, a, b } = await setup();
+    await signIn(owner.user.id);
+    await addPayment(
+      undefined,
+      formData({ fromId: a.id, toId: b.id, amount: "5", groupId: group.id })
+    );
+    const pay = await prisma.payment.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await signIn(memberUser.user.id);
+    await deletePayment(group.id, pay.id);
+
+    expect(await prisma.payment.count({ where: { groupId: group.id } })).toBe(1);
+  });
+
+  it("only the owner can delete a member", async () => {
+    const { group, memberUser, b } = await setup();
+    await signIn(memberUser.user.id);
+
+    await deleteMember(group.id, b.id);
+
+    expect(await prisma.member.count({ where: { id: b.id } })).toBe(1);
+  });
+
+  it("only the owner can create or revoke invites", async () => {
+    const { owner, group, memberUser } = await setup();
+
+    await signIn(memberUser.user.id);
+    await createInvite(group.id);
+    expect(await prisma.groupInvite.count({ where: { groupId: group.id } })).toBe(
+      0
+    );
+
+    await signIn(owner.user.id);
+    await createInvite(group.id);
+    const invite = await prisma.groupInvite.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    await signIn(memberUser.user.id);
+    await revokeInvite(group.id, invite.token);
+    const after = await prisma.groupInvite.findUniqueOrThrow({
+      where: { token: invite.token },
+    });
+    expect(after.revokedAt).toBeNull();
   });
 });
 

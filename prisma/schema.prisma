@@ -34,6 +34,8 @@ model User {
   createdInvites      GroupInvite[]        @relation("InviteCreatedBy")
   claimedMembers      Member[]
   passwordResetTokens PasswordResetToken[]
+  createdExpenses     Expense[]            @relation("ExpenseCreatedBy")
+  createdPayments     Payment[]            @relation("PaymentCreatedBy")
 }
 
 // Opaque server-side session. `id` is the SHA-256 hex of the random token kept
@@ -91,9 +93,9 @@ model GroupInvite {
 }
 
 model Group {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   // Currency every balance in this group is expressed in. One of the codes in
   // src/lib/currencies.ts. Chosen at creation, not editable afterwards (that
@@ -111,10 +113,10 @@ model Group {
 }
 
 model Member {
-  id      String  @id @default(cuid())
+  id      String @id @default(cuid())
   name    String
   groupId String
-  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   // Optionally links this slot to a real account (claimed via an invite).
   userId String?
@@ -158,6 +160,11 @@ model Expense {
   paidById String
   paidBy   Member @relation("PaidBy", fields: [paidById], references: [id])
 
+  // Who entered this expense. Null for rows created before creator tracking;
+  // a plain member may only edit/delete their own, an owner may touch any.
+  createdById String?
+  createdBy   User?   @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
   participants ExpenseParticipant[]
 }
 
@@ -189,4 +196,8 @@ model Payment {
 
   toId String
   to   Member @relation("PaymentTo", fields: [toId], references: [id], onDelete: Restrict)
+
+  // Who recorded this payment. Same rule as Expense.createdById.
+  createdById String?
+  createdBy   User?   @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 }

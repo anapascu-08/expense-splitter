@@ -17,7 +17,7 @@ export default async function EditExpensePage({
   params: Promise<{ id: string; expenseId: string }>;
 }) {
   const { id, expenseId } = await params;
-  await requireGroupAccess(id);
+  const { user, role } = await requireGroupAccess(id);
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId: id },
@@ -28,6 +28,8 @@ export default async function EditExpensePage({
   });
 
   if (!expense) notFound();
+  // Only the person who added the expense (or the group owner) may edit it.
+  if (role !== "owner" && expense.createdById !== user.id) notFound();
 
   const splitMode = expense.splitMode as SplitMode;
   const weights: Record<string, string> = {};

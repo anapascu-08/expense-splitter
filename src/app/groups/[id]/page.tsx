@@ -44,8 +44,11 @@ export default async function GroupPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { role } = await requireGroupAccess(id);
+  const { user, role } = await requireGroupAccess(id);
   const isOwner = role === "owner";
+  // Owner can touch anything; a plain member only rows they created.
+  const canMutate = (createdById: string | null) =>
+    isOwner || (createdById !== null && createdById === user.id);
 
   const group = await prisma.group.findUnique({
     where: { id },
@@ -224,12 +227,13 @@ export default async function GroupPage({
                             />
                             <SubmitButton>Salvează</SubmitButton>
                           </FeedbackForm>
-                          {locked ? (
+                          {isOwner && locked && (
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
                               reatribuie întâi acele cheltuieli.
                             </p>
-                          ) : (
+                          )}
+                          {isOwner && !locked && (
                             <form action={deleteMember.bind(null, group.id, member.id)}>
                               <ConfirmButton
                                 message={`Ștergi membrul „${member.name}”?`}
@@ -322,21 +326,31 @@ export default async function GroupPage({
                           </span>
                         )}
                       </span>
-                      <Link
-                        href={`/groups/${group.id}/expenses/${expense.id}/edit`}
-                        className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      >
-                        editează
-                      </Link>
-                      <form action={deleteExpense.bind(null, group.id, expense.id)}>
-                        <ConfirmButton
-                          message={`Ștergi cheltuiala „${expense.description}”?`}
-                          className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                          aria-label={`Șterge ${expense.description}`}
-                        >
-                          șterge
-                        </ConfirmButton>
-                      </form>
+                      {canMutate(expense.createdById) && (
+                        <>
+                          <Link
+                            href={`/groups/${group.id}/expenses/${expense.id}/edit`}
+                            className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                          >
+                            editează
+                          </Link>
+                          <form
+                            action={deleteExpense.bind(
+                              null,
+                              group.id,
+                              expense.id
+                            )}
+                          >
+                            <ConfirmButton
+                              message={`Ștergi cheltuiala „${expense.description}”?`}
+                              className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                              aria-label={`Șterge ${expense.description}`}
+                            >
+                              șterge
+                            </ConfirmButton>
+                          </form>
+                        </>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -425,19 +439,25 @@ export default async function GroupPage({
                       <span className="font-medium tabular-nums">
                         {formatMoney(payment.amount, base)}
                       </span>
-                      <form
-                        action={deletePayment.bind(null, group.id, payment.id)}
-                      >
-                        <ConfirmButton
-                          message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatMoney(
-                            payment.amount,
-                            base
-                          )})?`}
-                          className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      {canMutate(payment.createdById) && (
+                        <form
+                          action={deletePayment.bind(
+                            null,
+                            group.id,
+                            payment.id
+                          )}
                         >
-                          șterge
-                        </ConfirmButton>
-                      </form>
+                          <ConfirmButton
+                            message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatMoney(
+                              payment.amount,
+                              base
+                            )})?`}
+                            className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                          >
+                            șterge
+                          </ConfirmButton>
+                        </form>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -530,27 +550,39 @@ export default async function GroupPage({
                           text={url}
                           className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                         />
-                        <form
-                          action={revokeInvite.bind(null, group.id, invite.token)}
-                        >
-                          <SubmitButton
-                            pendingLabel="…"
-                            className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+                        {isOwner && (
+                          <form
+                            action={revokeInvite.bind(
+                              null,
+                              group.id,
+                              invite.token
+                            )}
                           >
-                            revocă
-                          </SubmitButton>
-                        </form>
+                            <SubmitButton
+                              pendingLabel="…"
+                              className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+                            >
+                              revocă
+                            </SubmitButton>
+                          </form>
+                        )}
                       </div>
                     </li>
                   );
                 })}
               </ul>
             )}
-            <form action={boundCreateInvite}>
-              <SubmitButton pendingLabel="Se generează…">
-                Generează link de invitație
-              </SubmitButton>
-            </form>
+            {isOwner ? (
+              <form action={boundCreateInvite}>
+                <SubmitButton pendingLabel="Se generează…">
+                  Generează link de invitație
+                </SubmitButton>
+              </form>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Doar owner-ul grupului poate genera linkuri de invitație.
+              </p>
+            )}
           </section>
 
           <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">

@@ -224,7 +224,8 @@ export async function updateMember(
 }
 
 export async function deleteMember(groupId: string, memberId: string) {
-  await requireGroupAccess(groupId);
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
   // Block deletion while the member is tied to expenses: as payer the DB would
   // reject it (paidBy is onDelete: Restrict), and as a participant a cascade
   // delete would silently re-split past expenses. The UI hides the button in
@@ -281,6 +282,17 @@ function readExpense(
   return { description, amount, paidById, split, money };
 }
 
+// An owner may edit/delete anything in the group; a plain member only rows
+// they created. Rows with no recorded creator (created before this was
+// tracked) are owner-only.
+function canMutate(
+  role: string,
+  createdById: string | null,
+  userId: string
+): boolean {
+  return role === "owner" || (createdById !== null && createdById === userId);
+}
+
 // Every id in an expense (payer + participants) must still belong to the
 // group. Guards against a member deleted while the form was open (would be an
 // unhandled FK error) and against a hand-built request linking a foreign
@@ -302,7 +314,7 @@ export async function addExpense(
 ): Promise<FormState> {
   // groupId via hidden field, not a bound arg — see addMember.
   const groupId = String(formData.get("groupId") ?? "");
-  await requireGroupAccess(groupId);
+  const { user } = await requireGroupAccess(groupId);
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -330,6 +342,7 @@ export async function addExpense(
       rateMicros: parsed.money.rateMicros,
       category: readCategory(formData),
       splitMode: parsed.split.splitMode,
+      createdById: user.id,
       participants: { create: parsed.split.participants },
     },
   });
@@ -344,13 +357,19 @@ export async function updateExpense(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  await requireGroupAccess(groupId);
+  const { user, role } = await requireGroupAccess(groupId);
 
   const expense = await prisma.expense.findFirst({
     where: { id: expenseId, groupId },
-    select: { id: true, group: { select: { baseCurrency: true } } },
+    select: {
+      id: true,
+      createdById: true,
+      group: { select: { baseCurrency: true } },
+    },
   });
   if (!expense) return { error: "Cheltuiala nu mai există." };
+  if (!canMutate(role, expense.createdById, user.id))
+    return { error: "Doar cine a adăugat cheltuiala sau owner-ul o pot edita." };
 
   const parsed = readExpense(formData, expense.group.baseCurrency);
   if ("error" in parsed) return parsed;
@@ -385,7 +404,12 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(groupId: string, expenseId: string) {
-  await requireGroupAccess(groupId);
+  const { user, role } = await requireGroupAccess(groupId);
+  const expense = await prisma.expense.findFirst({
+    where: { id: expenseId, groupId },
+    select: { createdById: true },
+  });
+  if (!expense || !canMutate(role, expense.createdById, user.id)) return;
   await prisma.expense.deleteMany({ where: { id: expenseId, groupId } });
   revalidatePath(`/groups/${groupId}`);
 }
@@ -396,7 +420,7 @@ export async function addPayment(
 ): Promise<FormState> {
   // groupId via hidden field, not a bound arg — see addMember.
   const groupId = String(formData.get("groupId") ?? "");
-  await requireGroupAccess(groupId);
+  const { user } = await requireGroupAccess(groupId);
   const fromId = String(formData.get("fromId") ?? "");
   const toId = String(formData.get("toId") ?? "");
   const amount = toBani(String(formData.get("amount") ?? "0"));
@@ -425,14 +449,19 @@ export async function addPayment(
     };
 
   await prisma.payment.create({
-    data: { groupId, fromId, toId, amount },
+    data: { groupId, fromId, toId, amount, createdById: user.id },
   });
   revalidatePath(`/groups/${groupId}`);
   return { ok: "Plată înregistrată." };
 }
 
 export async function deletePayment(groupId: string, paymentId: string) {
-  await requireGroupAccess(groupId);
+  const { user, role } = await requireGroupAccess(groupId);
+  const payment = await prisma.payment.findFirst({
+    where: { id: paymentId, groupId },
+    select: { createdById: true },
+  });
+  if (!payment || !canMutate(role, payment.createdById, user.id)) return;
   await prisma.payment.deleteMany({ where: { id: paymentId, groupId } });
   revalidatePath(`/groups/${groupId}`);
 }
@@ -440,7 +469,8 @@ export async function deletePayment(groupId: string, paymentId: string) {
 // --- Invites -----------------------------------------------------------
 
 export async function createInvite(groupId: string) {
-  const { user } = await requireGroupAccess(groupId);
+  const { user, role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
   await prisma.groupInvite.create({
     data: {
       groupId,
@@ -452,7 +482,8 @@ export async function createInvite(groupId: string) {
 }
 
 export async function revokeInvite(groupId: string, token: string) {
-  await requireGroupAccess(groupId);
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
   await prisma.groupInvite.updateMany({
     where: { token, groupId, revokedAt: null },
     data: { revokedAt: new Date() },
