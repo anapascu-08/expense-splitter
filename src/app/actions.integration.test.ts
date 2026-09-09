@@ -583,6 +583,52 @@ describe("permissions: member vs owner", () => {
     expect(await prisma.member.count({ where: { id: b.id } })).toBe(1);
   });
 
+  it("reuses the existing invite link instead of minting a new token", async () => {
+    const { owner, group } = await setup();
+    await signIn(owner.user.id);
+
+    await createInvite(group.id);
+    const first = await prisma.groupInvite.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+
+    // rewind its expiry so we can see the second call push it back out
+    await prisma.groupInvite.update({
+      where: { token: first.token },
+      data: { expiresAt: new Date(Date.now() + 1_000) },
+    });
+
+    await createInvite(group.id);
+
+    const all = await prisma.groupInvite.findMany({
+      where: { groupId: group.id },
+    });
+    expect(all).toHaveLength(1);
+    expect(all[0].token).toBe(first.token);
+    expect(all[0].expiresAt.getTime()).toBeGreaterThan(
+      Date.now() + 6 * 24 * 60 * 60 * 1000
+    );
+  });
+
+  it("mints a fresh token once the previous link is revoked", async () => {
+    const { owner, group } = await setup();
+    await signIn(owner.user.id);
+
+    await createInvite(group.id);
+    const first = await prisma.groupInvite.findFirstOrThrow({
+      where: { groupId: group.id },
+    });
+    await revokeInvite(group.id, first.token);
+
+    await createInvite(group.id);
+
+    const active = await prisma.groupInvite.findMany({
+      where: { groupId: group.id, revokedAt: null },
+    });
+    expect(active).toHaveLength(1);
+    expect(active[0].token).not.toBe(first.token);
+  });
+
   it("only the owner can create or revoke invites", async () => {
     const { owner, group, memberUser } = await setup();
 

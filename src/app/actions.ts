@@ -471,13 +471,26 @@ export async function deletePayment(groupId: string, paymentId: string) {
 export async function createInvite(groupId: string) {
   const { user, role } = await requireGroupAccess(groupId);
   if (role !== "owner") return;
-  await prisma.groupInvite.create({
-    data: {
-      groupId,
-      createdById: user.id,
-      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
-    },
+
+  // Invite links are meant to be reusable (see spec). Keep one active link per
+  // group: if there's already a live one, just extend its life instead of
+  // minting a new token every click.
+  const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+  const active = await prisma.groupInvite.findFirst({
+    where: { groupId, revokedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+    select: { token: true },
   });
+  if (active) {
+    await prisma.groupInvite.update({
+      where: { token: active.token },
+      data: { expiresAt },
+    });
+  } else {
+    await prisma.groupInvite.create({
+      data: { groupId, createdById: user.id, expiresAt },
+    });
+  }
   revalidatePath(`/groups/${groupId}`);
 }
 

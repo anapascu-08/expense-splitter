@@ -230,7 +230,7 @@ export default async function GroupPage({
                           {isOwner && locked && (
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
-                              reatribuie întâi acele cheltuieli.
+                              reatribuie întâi acele înregistrări.
                             </p>
                           )}
                           {isOwner && !locked && (
@@ -572,16 +572,18 @@ export default async function GroupPage({
                 })}
               </ul>
             )}
-            {isOwner ? (
-              <form action={boundCreateInvite}>
-                <SubmitButton pendingLabel="Se generează…">
-                  Generează link de invitație
-                </SubmitButton>
-              </form>
-            ) : (
+            {!isOwner ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Doar owner-ul grupului poate genera linkuri de invitație.
               </p>
+            ) : (
+              <form action={boundCreateInvite}>
+                <SubmitButton pendingLabel="Se generează…">
+                  {group.invites.length > 0
+                    ? "Prelungește linkul cu încă 7 zile"
+                    : "Generează link de invitație"}
+                </SubmitButton>
+              </form>
             )}
           </section>
 
