@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createGroup,
   updateGroup,
+  updateMember,
   deleteGroup,
   addExpense,
   addMember as addMemberAction,
@@ -337,9 +338,8 @@ describe("updateGroup", () => {
     await signIn(member.user.id);
 
     const state = await updateGroup(
-      group.id,
       undefined,
-      formData({ name: "Hijacked" })
+      formData({ name: "Hijacked", groupId: group.id })
     );
 
     expect(state).toEqual({ error: "Doar owner-ul poate redenumi grupul." });
@@ -347,17 +347,73 @@ describe("updateGroup", () => {
     expect(after?.name).toBe("Original");
   });
 
-  it("renames the group for the owner and redirects", async () => {
+  it("renames the group for the owner and returns a success note", async () => {
     const owner = await makeUser();
     const group = await makeGroup(owner.user.id, { name: "Original" });
     await signIn(owner.user.id);
 
-    const url = await catchRedirect(
-      updateGroup(group.id, undefined, formData({ name: "Renamed" }))
+    const state = await updateGroup(
+      undefined,
+      formData({ name: "Renamed", groupId: group.id })
     );
-    expect(url).toBe(`/groups/${group.id}`);
+    expect(state).toEqual({ ok: "Numele grupului a fost salvat." });
     const after = await prisma.group.findUnique({ where: { id: group.id } });
     expect(after?.name).toBe("Renamed");
+  });
+});
+
+describe("updateMember", () => {
+  it("renames a member and returns a success note (no redirect)", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const m = await prisma.member.create({
+      data: { groupId: group.id, name: "Bob" },
+    });
+
+    const state = await updateMember(
+      undefined,
+      formData({ name: "Bobby", groupId: group.id, memberId: m.id })
+    );
+    expect(state).toEqual({ ok: "Numele membrului a fost salvat." });
+    const after = await prisma.member.findUniqueOrThrow({ where: { id: m.id } });
+    expect(after.name).toBe("Bobby");
+  });
+
+  it("rejects a name that clashes with another member (case-insensitive)", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    await prisma.member.create({ data: { groupId: group.id, name: "Ana" } });
+    const m = await prisma.member.create({
+      data: { groupId: group.id, name: "Bob" },
+    });
+
+    const state = await updateMember(
+      undefined,
+      formData({ name: "ana", groupId: group.id, memberId: m.id })
+    );
+    expect(state).toEqual({
+      error: '„ana” există deja în grup.',
+      field: "name",
+    });
+  });
+
+  it("404s when the caller is not a member of the group", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const m = await prisma.member.create({
+      data: { groupId: group.id, name: "Bob" },
+    });
+    const outsider = await makeUser();
+    await signIn(outsider.user.id);
+
+    await expectNotFound(
+      updateMember(
+        undefined,
+        formData({ name: "X", groupId: group.id, memberId: m.id })
+      )
+    );
   });
 });
 

@@ -112,7 +112,6 @@ export default async function GroupPage({
   }
 
 
-  const boundUpdateGroup = updateGroup.bind(null, group.id);
   const boundCreateInvite = createInvite.bind(null, group.id);
 
   const hdrs = await headers();
@@ -136,7 +135,8 @@ export default async function GroupPage({
               redenumește / șterge grupul
             </summary>
             <div className="mt-3 flex flex-col gap-3">
-              <FeedbackForm action={boundUpdateGroup} rowClassName="flex gap-2">
+              <FeedbackForm action={updateGroup} rowClassName="flex gap-2">
+                <input type="hidden" name="groupId" value={group.id} />
                 <input
                   type="text"
                   name="name"
@@ -190,12 +190,6 @@ export default async function GroupPage({
                     pays > 0 &&
                       `apare în ${pays} ${pays === 1 ? "plată" : "plăți"}`,
                   ].filter(Boolean);
-                  const boundUpdateMember = updateMember.bind(
-                    null,
-                    group.id,
-                    member.id
-                  );
-
                   return (
                     <li
                       key={member.id}
@@ -208,9 +202,19 @@ export default async function GroupPage({
                         </summary>
                         <div className="mt-3 flex flex-col gap-3">
                           <FeedbackForm
-                            action={boundUpdateMember}
+                            action={updateMember}
                             rowClassName="flex gap-2"
                           >
+                            <input
+                              type="hidden"
+                              name="groupId"
+                              value={group.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="memberId"
+                              value={member.id}
+                            />
                             <input
                               type="text"
                               name="name"

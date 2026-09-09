@@ -124,10 +124,13 @@ export async function createGroup(
 }
 
 export async function updateGroup(
-  groupId: string,
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // groupId via hidden field, not a bound arg — see addMember. Needed here now
+  // that this returns { ok } (revalidatePath re-renders the page, which would
+  // change a bound action's identity and drop the message).
+  const groupId = String(formData.get("groupId") ?? "");
   const { role } = await requireGroupAccess(groupId);
   if (role !== "owner")
     return { error: "Doar owner-ul poate redenumi grupul." };
@@ -138,7 +141,8 @@ export async function updateGroup(
 
   await prisma.group.update({ where: { id: groupId }, data: { name } });
   revalidatePath(`/groups/${groupId}`);
-  redirect(`/groups/${groupId}`);
+  // No redirect: the spec wants a discreet, self-dismissing success note.
+  return { ok: "Numele grupului a fost salvat." };
 }
 
 export async function deleteGroup(groupId: string) {
@@ -188,11 +192,12 @@ export async function addMember(
 }
 
 export async function updateMember(
-  groupId: string,
-  memberId: string,
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // groupId + memberId via hidden fields, not bound args — see updateGroup.
+  const groupId = String(formData.get("groupId") ?? "");
+  const memberId = String(formData.get("memberId") ?? "");
   await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
   if (!name)
@@ -215,7 +220,7 @@ export async function updateMember(
     data: { name },
   });
   revalidatePath(`/groups/${groupId}`);
-  redirect(`/groups/${groupId}`);
+  return { ok: "Numele membrului a fost salvat." };
 }
 
 export async function deleteMember(groupId: string, memberId: string) {
