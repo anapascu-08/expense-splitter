@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { register, login, logout } from "@/app/auth-actions";
-import { getCurrentUser } from "@/lib/auth";
+import {
+  register,
+  login,
+  logout,
+  requestPasswordReset,
+  resetPassword,
+} from "@/app/auth-actions";
+import { getCurrentUser, verifyPassword, createPasswordResetToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { makeUser, signIn, formData } from "@/test/factories";
 import { catchRedirect } from "@/test/next-navigation-errors";
@@ -102,5 +108,110 @@ describe("logout", () => {
     expect(await catchRedirect(logout())).toBe("/login");
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
     expect(await getCurrentUser()).toBeNull();
+  });
+});
+
+describe("requestPasswordReset", () => {
+  // No RESEND_API_KEY in the test env, so sendEmail always throws here —
+  // requestPasswordReset swallows that and still returns the generic message,
+  // which is exactly the case this suite is pinning down.
+  const GENERIC_OK = {
+    ok: "Dacă adresa există într-un cont, ai primit un email cu instrucțiuni de resetare.",
+  };
+
+  it("creates a reset token for an existing account", async () => {
+    const { user } = await makeUser({ email: "reset@test.dev" });
+
+    const state = await requestPasswordReset(
+      undefined,
+      formData({ email: "reset@test.dev" })
+    );
+
+    expect(state).toEqual(GENERIC_OK);
+    expect(
+      await prisma.passwordResetToken.count({ where: { userId: user.id } })
+    ).toBe(1);
+  });
+
+  it("returns the same generic message for an unknown email, without creating a token", async () => {
+    const state = await requestPasswordReset(
+      undefined,
+      formData({ email: "nobody@test.dev" })
+    );
+
+    expect(state).toEqual(GENERIC_OK);
+    expect(await prisma.passwordResetToken.count()).toBe(0);
+  });
+
+  it("rejects a malformed email", async () => {
+    const state = await requestPasswordReset(
+      undefined,
+      formData({ email: "not-an-email" })
+    );
+    expect(state).toEqual({ error: "Email invalid.", field: "email" });
+  });
+});
+
+describe("resetPassword", () => {
+  it("sets the new password, signs the caller in, and redirects home", async () => {
+    const { user } = await makeUser({ email: "willreset@test.dev" });
+    const token = await createPasswordResetToken(user.id);
+
+    const url = await catchRedirect(
+      resetPassword(token, undefined, formData({ password: "newpassword123" }))
+    );
+
+    expect(url).toBe("/");
+    expect(await getCurrentUser()).toMatchObject({ email: "willreset@test.dev" });
+    const updated = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(await verifyPassword("newpassword123", updated.passwordHash)).toBe(
+      true
+    );
+  });
+
+  it("signs out every other session on reset", async () => {
+    const { user } = await makeUser();
+    await signIn(user.id); // an existing session, e.g. from another device
+    const token = await createPasswordResetToken(user.id);
+
+    await catchRedirect(
+      resetPassword(token, undefined, formData({ password: "newpassword123" }))
+    );
+
+    // The old session row is gone; only the fresh one from resetPassword's
+    // own createSession() remains.
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
+  });
+
+  it("rejects a short password without consuming the token", async () => {
+    const { user } = await makeUser();
+    const token = await createPasswordResetToken(user.id);
+
+    const state = await resetPassword(
+      token,
+      undefined,
+      formData({ password: "short" })
+    );
+
+    expect(state).toEqual({
+      error: "Parola trebuie să aibă minim 8 caractere.",
+      field: "password",
+    });
+    // Still usable afterwards — the failed attempt shouldn't have burned it.
+    const url = await catchRedirect(
+      resetPassword(token, undefined, formData({ password: "longenough1" }))
+    );
+    expect(url).toBe("/");
+  });
+
+  it("rejects an unknown or already-used token", async () => {
+    const state = await resetPassword(
+      "bogus-token",
+      undefined,
+      formData({ password: "longenough1" })
+    );
+    expect(state).toEqual({
+      error: "Linkul de resetare a expirat sau a fost deja folosit.",
+    });
   });
 });

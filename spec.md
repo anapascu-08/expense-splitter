@@ -126,9 +126,22 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   de accept, cu mesaj clar pentru link expirat/revocat/invalid; nelogat →
   `/login?next=…` și revenire după autentificare; header global (`SiteHeader`)
   cu numele userului + „Deconectare"
+- ✅ Reset de parolă — model `PasswordResetToken` (aceeași formă ca `Session`:
+  `id` = hash SHA-256 al tokenului random, tokenul brut nu ajunge niciodată în
+  DB), TTL 1 oră, single-use (verificat + marcat `usedAt` într-o tranzacție,
+  ca să nu poată fi refolosit sub o cursă); o cerere nouă invalidează orice
+  token anterior nefolosit al aceluiași user. `/forgot-password` (mesaj
+  identic indiferent dacă emailul există, ca să nu devină un oracol pentru
+  ce conturi sunt înregistrate) → `/reset-password/[token]` (arată „Link
+  invalid" dacă tokenul nu (mai) e valid) → parola nouă + auto-login +
+  **toate sesiunile existente ale userului sunt șterse**. Email trimis prin
+  API-ul HTTP al Resend (`src/lib/email.ts`, doar `fetch`, fără SDK/dependință
+  nouă) — necesită `RESEND_API_KEY` în mediu; fără el, tokenul tot se
+  creează, dar emailul eșuează silențios (eroare logată, nu scursă către
+  apelant). Link „Ai uitat parola?" pe ecranul de login.
 
-Rămas pe viitor: reset parolă, verificare email, OAuth, claiming efectiv al
-unui slot `Member` la accept invitație.
+Rămas pe viitor: verificare email, OAuth, claiming efectiv al unui slot
+`Member` la accept invitație.
 
 ### Faza 5 — Polish & extra ✅
 - ✅ Multiple valute — fiecare grup are o valută de bază (`Group.baseCurrency`,

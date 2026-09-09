@@ -19,6 +19,7 @@ const scrypt = promisify(scryptCb) as (
 const KEY_LEN = 64;
 const SESSION_COOKIE = "session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // --- Passwords -------------------------------------------------------------
 
@@ -100,4 +101,65 @@ export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
+}
+
+// --- Password reset --------------------------------------------------------
+//
+// Same shape as sessions above: only the token's hash is stored, the raw
+// token goes out in the emailed link and is never persisted.
+
+// Returns the raw token to put in the emailed link. Any previous unused
+// token for this user is invalidated first, so at most one link works at a
+// time (requesting a new one silently supersedes an older, unopened email).
+export async function createPasswordResetToken(userId: string): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+  await prisma.$transaction([
+    prisma.passwordResetToken.deleteMany({ where: { userId } }),
+    prisma.passwordResetToken.create({
+      data: { id: hashToken(token), userId, expiresAt },
+    }),
+  ]);
+  return token;
+}
+
+export type ResetTokenCheck = { valid: true; userId: string } | { valid: false };
+
+// Read-only check for rendering the reset-password page (show the form vs.
+// an "invalid link" message). Not the source of truth for the actual
+// change — consumePasswordResetToken re-checks atomically on submit.
+export async function checkPasswordResetToken(
+  token: string
+): Promise<ResetTokenCheck> {
+  const row = await prisma.passwordResetToken.findUnique({
+    where: { id: hashToken(token) },
+  });
+  if (!row || row.usedAt || row.expiresAt.getTime() < Date.now()) {
+    return { valid: false };
+  }
+  return { valid: true, userId: row.userId };
+}
+
+// Validates the token, sets the new password hash, marks the token used, and
+// drops every existing session for that user — all inside one transaction,
+// so the token can't be replayed even under a concurrent double-submit.
+// Returns the user id on success, null if the token wasn't valid.
+export async function consumePasswordResetToken(
+  token: string,
+  passwordHash: string
+): Promise<string | null> {
+  const id = hashToken(token);
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.passwordResetToken.findUnique({ where: { id } });
+    if (!row || row.usedAt || row.expiresAt.getTime() < Date.now()) {
+      return null;
+    }
+    await tx.passwordResetToken.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
+    await tx.user.update({ where: { id: row.userId }, data: { passwordHash } });
+    await tx.session.deleteMany({ where: { userId: row.userId } });
+    return row.userId;
+  });
 }

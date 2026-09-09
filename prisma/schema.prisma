@@ -23,11 +23,12 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  sessions       Session[]
-  ownedGroups    Group[]       @relation("GroupOwner")
-  memberships    GroupMember[]
-  createdInvites GroupInvite[] @relation("InviteCreatedBy")
-  claimedMembers Member[]
+  sessions            Session[]
+  ownedGroups         Group[]              @relation("GroupOwner")
+  memberships         GroupMember[]
+  createdInvites      GroupInvite[]        @relation("InviteCreatedBy")
+  claimedMembers      Member[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 // Opaque server-side session. `id` is the SHA-256 hex of the random token kept
@@ -38,6 +39,21 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// One-time "forgot password" link. Same shape as Session: `id` is the
+// SHA-256 hash of the random token emailed to the user, so a DB leak can't
+// be replayed as a working reset link. `usedAt` makes it single-use even
+// under a race (checked + set inside one transaction in lib/auth.ts).
+model PasswordResetToken {
+  id        String    @id
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
 
   @@index([userId])
 }

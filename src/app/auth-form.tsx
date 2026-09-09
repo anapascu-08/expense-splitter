@@ -70,6 +70,15 @@ export function AuthForm({ mode, action }: Props) {
         />
       </label>
 
+      {!isRegister && (
+        <Link
+          href="/forgot-password"
+          className="self-end text-xs text-gray-500 hover:underline dark:text-gray-400"
+        >
+          Ai uitat parola?
+        </Link>
+      )}
+
       {state?.error && (
         <p
           id={errorId}

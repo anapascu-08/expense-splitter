@@ -51,6 +51,15 @@ testat autentificarea și accesul multi-utilizator (parola pentru toate:
 | `bob@test.dev` | membru în grup |
 | `carol@test.dev` | fără grup — testează invitația: login ca Carol, apoi deschide `http://localhost:3000/invite/seed-invite-token` |
 
+### Reset de parolă
+
+„Ai uitat parola?" din `/login` funcționează fără nimic suplimentar — se
+creează tokenul, dar emailul nu pleacă decât dacă e setat `RESEND_API_KEY`
+(cont gratuit pe [resend.com](https://resend.com)) în `.env`. Fără el, cererea
+tot reușește (mesaj generic, ca să nu scurgă ce conturi există), doar că
+linkul de resetare nu ajunge nicăieri — eroarea de livrare e doar logată în
+consola serverului, nu afișată utilizatorului.
+
 Pentru mai multe conturi logate simultan folosește ferestre separate
 (normală + incognito) sau profile de browser diferite — sesiunea e un
 cookie per context de browser.
