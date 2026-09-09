@@ -25,6 +25,7 @@ import { FeedbackForm } from "@/app/feedback-form";
 import { QuickPayForm } from "@/app/quick-pay-form";
 import { ExpenseForm } from "@/app/expense-form";
 import { GroupSummary } from "@/app/group-summary";
+import { ActivityFeed } from "@/app/activity-feed";
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS,
@@ -76,6 +77,24 @@ export default async function GroupPage({
   }));
   const balances = computeBalances(group.members, expensesInBase, group.payments);
   const settlement = computeSettlement(balances);
+
+  // The in-app "notification" feed: no email/push, just the most recent
+  // expenses and payments merged into one chronological list (Faza 5).
+  const activityExpenses = group.expenses.map((e) => ({
+    id: e.id,
+    description: e.description,
+    amount: e.amount,
+    currency: e.currency,
+    createdAt: e.createdAt,
+    paidByName: e.paidBy.name,
+  }));
+  const activityPayments = group.payments.map((p) => ({
+    id: p.id,
+    amount: p.amount,
+    createdAt: p.createdAt,
+    fromName: p.from.name,
+    toName: p.to.name,
+  }));
 
   // How each member is tied to expenses / payments — drives whether they can be deleted.
   const paidCount = new Map<string, number>();
@@ -142,6 +161,12 @@ export default async function GroupPage({
           </details>
         )}
       </header>
+
+      <ActivityFeed
+        expenses={activityExpenses}
+        payments={activityPayments}
+        baseCurrency={base}
+      />
 
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-8">
         <div className="flex flex-col gap-8 lg:col-start-1 lg:row-start-1">

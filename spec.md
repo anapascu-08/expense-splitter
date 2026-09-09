@@ -128,7 +128,7 @@ generăm o listă minimă de transferuri care echilibrează soldurile
 Rămas pe viitor: reset parolă, verificare email, OAuth, claiming efectiv al
 unui slot `Member` la accept invitație.
 
-### Faza 5 — Polish & extra
+### Faza 5 — Polish & extra ✅
 - ✅ Multiple valute — fiecare grup are o valută de bază (`Group.baseCurrency`,
   aleasă la creare, fixă după aceea); fiecare cheltuială are propria valută
   (`Expense.currency`) plus un curs manual salvat la introducere
@@ -142,7 +142,15 @@ unui slot `Member` la accept invitație.
   cazare, băuturi, activități, cumpărături, altele) în `src/lib/categories.ts`;
   câmp `Expense.category` (nullable); selector în formular; iconiță + etichetă
   pe fiecare cheltuială; rezumat „Pe categorii" sub lista de cheltuieli
-- Notificări (email/push) când se adaugă o cheltuială nouă
+- ✅ Notificări — variantă in-app, zero dependințe (nu email/push real, care ar
+  cere un provider extern + chei API): secțiunea „Activitate recentă” pe
+  pagina de grup, sus, sub header. `src/lib/activity.ts` (`buildActivity`,
+  test-first) combină ultimele cheltuieli + plăți deja încărcate (ambele au
+  `createdAt`) într-o listă unică, sortată descrescător, limitată la 5;
+  `src/lib/relative-time.ts` (`formatRelativeTime`, test-first) formatează
+  „acum 5 minute" / „acum 2 zile", cu fallback la dată absolută după o
+  săptămână. Componenta `ActivityFeed` randează lista (💸 cheltuială / ✅
+  plată) și dispare când grupul n-are nicio activitate.
 - ✅ Export CSV & PDF — route handler
   `GET /groups/[id]/export?type=expenses|balances&format=csv|pdf`
   (protejat cu `requireGroupAccess`). CSV: serializare pură test-first în
