@@ -42,6 +42,13 @@ describe("formatRelativeTime", () => {
     );
   });
 
+  it("formats the fallback date in Europe/Bucharest, not UTC", () => {
+    // 23:30 UTC on Jan 31 is 01:30 on Feb 1 in Bucharest
+    expect(
+      formatRelativeTime(new Date("2026-01-31T23:30:00.000Z"), NOW)
+    ).toBe("01.02.2026");
+  });
+
   it("treats a future date as 'chiar acum' rather than a negative count", () => {
     expect(formatRelativeTime(new Date(NOW.getTime() + 60_000), NOW)).toBe(
       "chiar acum"

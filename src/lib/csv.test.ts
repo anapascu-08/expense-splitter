@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toCsv, expensesToCsv, balancesToCsv } from "@/lib/csv";
+import { toCsv, isoDate, expensesToCsv, balancesToCsv } from "@/lib/csv";
 import type { MemberBalance } from "@/lib/balances";
 
 describe("toCsv", () => {
@@ -33,6 +33,14 @@ describe("toCsv", () => {
     expect(toCsv([["-50,00", "1234,56", "+7"]])).toBe("-50,00;1234,56;+7");
     // still quoted if it also contains a quote (embedded quotes doubled)
     expect(toCsv([['=HYPERLINK("x")']])).toBe(`"'=HYPERLINK(""x"")"`);
+  });
+});
+
+describe("isoDate", () => {
+  it("uses the Europe/Bucharest calendar date, not UTC", () => {
+    // 23:00 UTC on Aug 27 is 02:00 on Aug 28 in Bucharest
+    expect(isoDate(new Date("2026-08-27T23:00:00.000Z"))).toBe("2026-08-28");
+    expect(isoDate(new Date("2026-08-28T09:30:00.000Z"))).toBe("2026-08-28");
   });
 });
 

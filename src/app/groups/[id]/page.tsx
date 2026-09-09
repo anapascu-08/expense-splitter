@@ -6,6 +6,7 @@ import { requireGroupAccess } from "@/lib/access";
 import { CopyButton } from "@/app/copy-button";
 import { computeBalances, computeSettlement } from "@/lib/balances";
 import { baniToInput, formatMoney, convertToBase } from "@/lib/money";
+import { formatRelativeTime } from "@/lib/relative-time";
 import {
   addExpense,
   addMember,
@@ -116,6 +117,7 @@ export default async function GroupPage({
 
 
   const boundCreateInvite = createInvite.bind(null, group.id);
+  const now = new Date();
 
   const hdrs = await headers();
   const origin = `${hdrs.get("x-forwarded-proto") ?? "http"}://${
@@ -311,6 +313,8 @@ export default async function GroupPage({
                         {expense.category &&
                           isExpenseCategory(expense.category) &&
                           ` · ${CATEGORY_LABELS[expense.category]}`}
+                        {" · "}
+                        {formatRelativeTime(expense.createdAt, now)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -434,6 +438,9 @@ export default async function GroupPage({
                     <span>
                       <span className="font-medium">{payment.from.name}</span> →{" "}
                       <span className="font-medium">{payment.to.name}</span>
+                      <span className="ml-2 text-xs text-gray-400">
+                        {formatRelativeTime(payment.createdAt, now)}
+                      </span>
                     </span>
                     <div className="flex items-center gap-3">
                       <span className="font-medium tabular-nums">

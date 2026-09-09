@@ -36,8 +36,12 @@ export const SPLIT_MODE_LABEL: Record<string, string> = {
   SHARES: "cote",
 };
 
+// Local (Europe/Bucharest) calendar date, not UTC: an expense entered at
+// 01:30 local time belongs to that day, not the previous one.
 export function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Bucharest",
+  }).format(date);
 }
 
 export type ExportExpense = {

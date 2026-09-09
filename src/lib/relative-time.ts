@@ -1,12 +1,15 @@
 // Human-readable Romanian relative time for the activity feed ("acum 5
 // minute", "acum 2 zile"), falling back to an absolute date past a week.
-// Pure + deterministic: callers pass `now` explicitly instead of this
-// reading the clock, and the fallback is built from UTC fields so the
-// result doesn't depend on the server's local timezone.
+// Pure + deterministic: callers pass `now` explicitly, and the fallback date
+// is formatted in Europe/Bucharest so it matches what the user's clock shows
+// (and doesn't depend on the server's timezone).
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
+const dateFmt = new Intl.DateTimeFormat("ro-RO", {
+  timeZone: "Europe/Bucharest",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
 
 // Romanian count phrase: 1 -> singular; 2..19 -> bare plural; a number whose
 // last two digits are 00 or 20..99 -> "de" + plural ("20 de minute").
@@ -30,5 +33,5 @@ export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `acum ${count(diffDays, "zi", "zile")}`;
 
-  return `${pad(date.getUTCDate())}.${pad(date.getUTCMonth() + 1)}.${date.getUTCFullYear()}`;
+  return dateFmt.format(date);
 }
