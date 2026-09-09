@@ -7,7 +7,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-gray-200 dark:border-gray-800">
-      <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 lg:max-w-6xl">
         <Link href="/" className="text-sm font-semibold">
           Expense Splitter
         </Link>
