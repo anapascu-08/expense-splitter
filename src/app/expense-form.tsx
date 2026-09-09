@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import {
   formatBani,
@@ -117,6 +117,26 @@ export function ExpenseForm({
   const [weights, setWeights] = useState<Record<string, string>>(
     defaults?.weights ?? {}
   );
+
+  // After a successful add, clear the form so the same expense can't be
+  // submitted again by accident (the button stays enabled with the previous
+  // values otherwise). Edit mode redirects away, so only the add form needs it.
+  const clearedFor = useRef<FormState>(undefined);
+  useEffect(() => {
+    if (defaults || !state || !("ok" in state) || clearedFor.current === state) {
+      return;
+    }
+    clearedFor.current = state;
+    setDescription("");
+    setAmount("");
+    setPaidById(members[0]?.id ?? "");
+    setCategory("");
+    setCurrency(baseCurrency);
+    setRate("");
+    setSplitMode("EQUAL");
+    setChecked(new Set(members.map((m) => m.id)));
+    setWeights({});
+  }, [state, defaults, members, baseCurrency]);
 
   const amountBani = Math.round(parseNum(amount) * 100);
   const participants = members.filter((m) => checked.has(m.id));
