@@ -67,7 +67,6 @@ export async function register(
 }
 
 export async function login(
-  next: string,
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
@@ -85,7 +84,11 @@ export async function login(
   }
 
   await createSession(user.id);
-  redirect(safeNext(next));
+  // `next` rides along as a hidden form field (not a bound arg) so the page can
+  // pass `login` straight to useActionState as a stable action reference — a
+  // per-render `login.bind(null, next)` changes identity when the page
+  // re-renders after the action and useActionState then drops the result.
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function logout(): Promise<void> {

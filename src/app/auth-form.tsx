@@ -7,12 +7,15 @@ import type { AuthState } from "@/app/auth-actions";
 type Props = {
   mode: "login" | "register";
   action: (state: AuthState, formData: FormData) => Promise<AuthState>;
+  // login only: forwarded to the action as a hidden field so it can redirect
+  // there on success (see `login` in auth-actions.ts).
+  next?: string;
 };
 
 const inputClass =
   "field";
 
-export function AuthForm({ mode, action }: Props) {
+export function AuthForm({ mode, action, next }: Props) {
   const [state, formAction, pending] = useActionState<AuthState, FormData>(
     action,
     undefined
@@ -34,6 +37,7 @@ export function AuthForm({ mode, action }: Props) {
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      {next && <input type="hidden" name="next" value={next} />}
       {isRegister && (
         <label className="flex flex-col gap-1 text-sm">
           Nume

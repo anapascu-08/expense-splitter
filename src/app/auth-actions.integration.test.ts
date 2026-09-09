@@ -64,9 +64,12 @@ describe("login", () => {
     await makeUser({ email: "log@test.dev", password: "password123" });
     const url = await catchRedirect(
       login(
-        "/groups/abc",
         undefined,
-        formData({ email: "log@test.dev", password: "password123" })
+        formData({
+          email: "log@test.dev",
+          password: "password123",
+          next: "/groups/abc",
+        })
       )
     );
     expect(url).toBe("/groups/abc");
@@ -77,9 +80,12 @@ describe("login", () => {
     await makeUser({ email: "safe@test.dev", password: "password123" });
     const url = await catchRedirect(
       login(
-        "//evil.com",
         undefined,
-        formData({ email: "safe@test.dev", password: "password123" })
+        formData({
+          email: "safe@test.dev",
+          password: "password123",
+          next: "//evil.com",
+        })
       )
     );
     expect(url).toBe("/");
@@ -88,7 +94,6 @@ describe("login", () => {
   it("returns an error on a wrong password", async () => {
     await makeUser({ email: "wrong@test.dev", password: "password123" });
     const state = await login(
-      "/",
       undefined,
       formData({ email: "wrong@test.dev", password: "nope" })
     );
