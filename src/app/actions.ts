@@ -150,10 +150,13 @@ export async function deleteGroup(groupId: string) {
 }
 
 export async function addMember(
-  groupId: string,
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // groupId comes through a hidden field, not a bound arg: a per-render
+  // action.bind() breaks the useActionState feedback on the group page (its
+  // identity changes when revalidatePath re-renders). Same as `login`.
+  const groupId = String(formData.get("groupId") ?? "");
   await requireGroupAccess(groupId);
   const name = String(formData.get("name") ?? "").trim();
   if (!name)
@@ -257,10 +260,11 @@ function readExpense(
 }
 
 export async function addExpense(
-  groupId: string,
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // groupId via hidden field, not a bound arg — see addMember.
+  const groupId = String(formData.get("groupId") ?? "");
   await requireGroupAccess(groupId);
 
   const group = await prisma.group.findUnique({
@@ -336,10 +340,11 @@ export async function deleteExpense(groupId: string, expenseId: string) {
 }
 
 export async function addPayment(
-  groupId: string,
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // groupId via hidden field, not a bound arg — see addMember.
+  const groupId = String(formData.get("groupId") ?? "");
   await requireGroupAccess(groupId);
   const fromId = String(formData.get("fromId") ?? "");
   const toId = String(formData.get("toId") ?? "");

@@ -103,9 +103,8 @@ describe("form-level validation feedback", () => {
     await prisma.member.create({ data: { groupId: group.id, name: "Alice" } });
 
     const dup = await addMemberAction(
-      group.id,
       undefined,
-      formData({ name: "Alice" })
+      formData({ name: "Alice", groupId: group.id })
     );
     expect(dup).toEqual({
       error: '„Alice” există deja în grup.',
@@ -113,9 +112,8 @@ describe("form-level validation feedback", () => {
     });
 
     const ok = await addMemberAction(
-      group.id,
       undefined,
-      formData({ name: "Bob" })
+      formData({ name: "Bob", groupId: group.id })
     );
     expect(ok).toEqual({ ok: "„Bob” a fost adăugat." });
     expect(await prisma.member.count({ where: { groupId: group.id } })).toBe(2);
@@ -127,9 +125,8 @@ describe("form-level validation feedback", () => {
     await signIn(owner.user.id);
 
     const state = await addExpense(
-      group.id,
       undefined,
-      formData({ description: "", amount: "10" })
+      formData({ description: "", amount: "10", groupId: group.id })
     );
     expect(state).toEqual({
       error: "Adaugă o descriere.",
@@ -147,9 +144,8 @@ describe("form-level validation feedback", () => {
     });
 
     const state = await addPayment(
-      group.id,
       undefined,
-      formData({ fromId: a.id, toId: a.id, amount: "10" })
+      formData({ fromId: a.id, toId: a.id, amount: "10", groupId: group.id })
     );
 
     expect(state).toEqual({
@@ -171,9 +167,8 @@ describe("form-level validation feedback", () => {
     });
 
     const state = await addPayment(
-      group.id,
       undefined,
-      formData({ fromId: a.id, toId: b.id, amount: "0" })
+      formData({ fromId: a.id, toId: b.id, amount: "0", groupId: group.id })
     );
 
     expect(state).toEqual({
@@ -225,9 +220,8 @@ describe("addExpense", () => {
 
     await expectNotFound(
       addExpense(
-        group.id,
         undefined,
-        formData({ description: "x", amount: "10" })
+        formData({ description: "x", amount: "10", groupId: group.id })
       )
     );
     expect(await prisma.expense.count()).toBe(0);
@@ -242,7 +236,6 @@ describe("addExpense", () => {
     });
 
     await addExpense(
-      group.id,
       undefined,
       formData({
         description: "Lunch",
@@ -250,6 +243,7 @@ describe("addExpense", () => {
         paidById: alice.id,
         splitMode: "EQUAL",
         participantIds: [alice.id],
+        groupId: group.id,
       })
     );
 

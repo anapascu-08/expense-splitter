@@ -37,6 +37,9 @@ type Member = { id: string; name: string };
 type Props = {
   members: Member[];
   action: (state: FormState, formData: FormData) => Promise<FormState>;
+  // Add form only: sent as a hidden field so `action` stays a stable
+  // reference (a bound groupId breaks useActionState — see addMember).
+  groupId?: string;
   submitLabel: string;
   baseCurrency: string;
   cancelHref?: string;
@@ -63,6 +66,7 @@ function modeLabels(currencySym: string): Record<SplitMode, string> {
 export function ExpenseForm({
   members,
   action,
+  groupId,
   submitLabel,
   baseCurrency,
   cancelHref,
@@ -198,6 +202,7 @@ export function ExpenseForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      {groupId && <input type="hidden" name="groupId" value={groupId} />}
       <input
         type="text"
         name="description"

@@ -5,6 +5,7 @@ import { SubmitButton } from "@/app/submit-button";
 import type { FormState } from "@/app/form-state";
 
 type Props = {
+  groupId: string;
   fromId: string;
   toId: string;
   amount: string; // baniToInput string
@@ -15,21 +16,27 @@ type Props = {
 // payment. Its values are always valid, but it shares addPayment with the
 // manual form, so it needs the (state, formData) signature and surfaces any
 // error inline just in case.
-export function QuickPayForm({ fromId, toId, amount, action }: Props) {
+export function QuickPayForm({ groupId, fromId, toId, amount, action }: Props) {
   const [state, formAction] = useActionState<FormState, FormData>(
     action,
     undefined
   );
+  // Every input here is fixed, so a second submit would just record the same
+  // payment again. Lock the button once it has succeeded (the row is about to
+  // disappear on revalidation anyway).
+  const done = state != null && "ok" in state;
   return (
     <form action={formAction} className="flex items-center gap-2">
+      <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="fromId" value={fromId} />
       <input type="hidden" name="toId" value={toId} />
       <input type="hidden" name="amount" value={amount} />
       <SubmitButton
         pendingLabel="…"
+        disabled={done}
         className="whitespace-nowrap rounded-md border border-gray-300 px-2 py-1 text-xs font-medium transition hover:border-gray-400 disabled:opacity-50 dark:border-gray-700 dark:hover:border-gray-500"
       >
-        marchează achitat
+        {done ? "achitat" : "marchează achitat"}
       </SubmitButton>
       {state && "error" in state && (
         <span role="alert" className="text-xs text-red-600 dark:text-red-400">

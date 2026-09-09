@@ -113,9 +113,6 @@ export default async function GroupPage({
 
 
   const boundUpdateGroup = updateGroup.bind(null, group.id);
-  const boundAddMember = addMember.bind(null, group.id);
-  const boundAddExpense = addExpense.bind(null, group.id);
-  const boundAddPayment = addPayment.bind(null, group.id);
   const boundCreateInvite = createInvite.bind(null, group.id);
 
   const hdrs = await headers();
@@ -245,7 +242,8 @@ export default async function GroupPage({
                 })}
               </ul>
             )}
-            <FeedbackForm action={boundAddMember} rowClassName="flex gap-2">
+            <FeedbackForm action={addMember} rowClassName="flex gap-2">
+              <input type="hidden" name="groupId" value={group.id} />
               <input
                 type="text"
                 name="name"
@@ -266,7 +264,8 @@ export default async function GroupPage({
             ) : (
               <ExpenseForm
                 members={group.members}
-                action={boundAddExpense}
+                action={addExpense}
+                groupId={group.id}
                 submitLabel="Adaugă cheltuială"
                 baseCurrency={base}
               />
@@ -387,10 +386,11 @@ export default async function GroupPage({
                       {formatMoney(t.amount, base)}
                     </p>
                     <QuickPayForm
+                      groupId={group.id}
                       fromId={t.fromId}
                       toId={t.toId}
                       amount={baniToInput(t.amount)}
-                      action={boundAddPayment}
+                      action={addPayment}
                     />
                   </div>
                 ))}
@@ -442,9 +442,10 @@ export default async function GroupPage({
 
             {group.members.length >= 2 && (
               <FeedbackForm
-                action={boundAddPayment}
+                action={addPayment}
                 rowClassName="flex flex-col gap-3 sm:flex-row sm:items-end"
               >
+                <input type="hidden" name="groupId" value={group.id} />
                 <label className="flex flex-1 flex-col gap-1 text-sm">
                   De la
                   <select

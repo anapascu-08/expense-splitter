@@ -8,6 +8,8 @@ type Props = {
   pendingLabel?: string;
   className?: string;
   variant?: "default" | "primary";
+  /** Kept disabled even when the form is idle (e.g. after a one-shot submit). */
+  disabled?: boolean;
 };
 
 // Submit button that reflects the pending state of its enclosing <form> — the
@@ -17,12 +19,13 @@ export function SubmitButton({
   pendingLabel = "Se salvează…",
   className,
   variant = "default",
+  disabled = false,
 }: Props) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       aria-busy={pending}
       className={className ?? (variant === "primary" ? "btn-primary" : "btn")}
     >
