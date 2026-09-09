@@ -22,17 +22,25 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 type ParticipantWeight = { memberId: string; weight: number };
 
 // Read the split mode + per-participant weights from a form and validate them.
-// Returns null when the input is invalid (the UI blocks these cases already).
+// Returns a specific error message (not just "invalid") so the form can point
+// at what's wrong; duplicate participant ids are collapsed so they can't hit
+// the ExpenseParticipant composite primary key.
 function readSplit(
   formData: FormData,
   amount: number
-): { splitMode: string; participants: ParticipantWeight[] } | null {
+): { error: string; field?: string } | {
+  splitMode: string;
+  participants: ParticipantWeight[];
+} {
   const rawMode = String(formData.get("splitMode") ?? "EQUAL");
   const splitMode = ["EQUAL", "EXACT", "PERCENT", "SHARES"].includes(rawMode)
     ? rawMode
     : "EQUAL";
-  const participantIds = formData.getAll("participantIds").map(String);
-  if (participantIds.length === 0) return null;
+  const participantIds = [
+    ...new Set(formData.getAll("participantIds").map(String)),
+  ];
+  if (participantIds.length === 0)
+    return { error: "Alege cel puțin un participant." };
 
   let participants: ParticipantWeight[];
   if (splitMode === "EXACT") {
@@ -41,16 +49,18 @@ function readSplit(
       weight: toBani(String(formData.get(`weight_${memberId}`) ?? "0")),
     }));
     const sum = participants.reduce((s, p) => s + p.weight, 0);
-    if (participants.some((p) => p.weight < 0) || sum !== amount) return null;
+    if (participants.some((p) => p.weight < 0) || sum !== amount)
+      return {
+        error: "Sumele exacte trebuie să adune fix suma cheltuielii.",
+      };
   } else if (splitMode === "PERCENT") {
     participants = participantIds.map((memberId) => ({
       memberId,
       weight: toBasisPoints(String(formData.get(`weight_${memberId}`) ?? "0")),
     }));
     const sum = participants.reduce((s, p) => s + p.weight, 0);
-    if (participants.some((p) => p.weight < 0) || sum !== FULL_PERCENT_BP) {
-      return null;
-    }
+    if (participants.some((p) => p.weight < 0) || sum !== FULL_PERCENT_BP)
+      return { error: "Procentele trebuie să adune fix 100%." };
   } else if (splitMode === "SHARES") {
     participants = participantIds.map((memberId) => ({
       memberId,
@@ -58,9 +68,10 @@ function readSplit(
     }));
     // Every participant needs at least one whole share; the amount is then
     // split proportionally (see splitAmount in lib/balances).
-    if (participants.some((p) => !Number.isInteger(p.weight) || p.weight < 1)) {
-      return null;
-    }
+    if (participants.some((p) => !Number.isInteger(p.weight) || p.weight < 1))
+      return {
+        error: "Fiecare participant are nevoie de cel puțin o cotă întreagă.",
+      };
   } else {
     participants = participantIds.map((memberId) => ({ memberId, weight: 1 }));
   }
@@ -251,12 +262,27 @@ function readExpense(
   if (!paidById) return { error: "Alege cine a plătit.", field: "paidById" };
 
   const split = readSplit(formData, amount);
-  if (!split) return { error: "Împărțirea nu se potrivește cu suma." };
+  if ("error" in split) return split;
 
   const money = readCurrency(formData, baseCurrency);
   if (!money) return { error: "Pune un curs valutar pozitiv.", field: "rate" };
 
   return { description, amount, paidById, split, money };
+}
+
+// Every id in an expense (payer + participants) must still belong to the
+// group. Guards against a member deleted while the form was open (would be an
+// unhandled FK error) and against a hand-built request linking a foreign
+// member (computeBalances ignores it, so balances would stop summing to zero).
+async function membersBelong(
+  groupId: string,
+  ids: string[]
+): Promise<boolean> {
+  const unique = [...new Set(ids)];
+  const found = await prisma.member.count({
+    where: { groupId, id: { in: unique } },
+  });
+  return found === unique.length;
 }
 
 export async function addExpense(
@@ -275,6 +301,13 @@ export async function addExpense(
 
   const parsed = readExpense(formData, group.baseCurrency);
   if ("error" in parsed) return parsed;
+
+  const ok = await membersBelong(groupId, [
+    parsed.paidById,
+    ...parsed.split.participants.map((p) => p.memberId),
+  ]);
+  if (!ok)
+    return { error: "Unii membri nu mai fac parte din grup. Reîncarcă pagina." };
 
   await prisma.expense.create({
     data: {
@@ -311,6 +344,13 @@ export async function updateExpense(
   const parsed = readExpense(formData, expense.group.baseCurrency);
   if ("error" in parsed) return parsed;
   const { description, amount, paidById, split, money } = parsed;
+
+  const ok = await membersBelong(groupId, [
+    paidById,
+    ...split.participants.map((p) => p.memberId),
+  ]);
+  if (!ok)
+    return { error: "Unii membri nu mai fac parte din grup. Reîncarcă pagina." };
 
   await prisma.expense.update({
     where: { id: expenseId },

@@ -155,6 +155,146 @@ describe("form-level validation feedback", () => {
     expect(await prisma.payment.count()).toBe(0);
   });
 
+  it("addExpense dedupes repeated participantIds instead of crashing on the PK", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "10",
+        paidById: a.id,
+        splitMode: "EQUAL",
+        participantIds: [a.id, a.id],
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({ ok: "Cheltuială adăugată." });
+    const expense = await prisma.expense.findFirstOrThrow({
+      where: { groupId: group.id },
+      include: { participants: true },
+    });
+    expect(expense.participants).toHaveLength(1);
+  });
+
+  it("addExpense rejects a payer that is not a member of the group", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const other = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const inGroup = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const foreign = await prisma.member.create({
+      data: { groupId: other.id, name: "B" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "10",
+        paidById: foreign.id,
+        splitMode: "EQUAL",
+        participantIds: [inGroup.id],
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({
+      error: "Unii membri nu mai fac parte din grup. Reîncarcă pagina.",
+    });
+    expect(await prisma.expense.count()).toBe(0);
+  });
+
+  it("addExpense rejects a participant that is not a member of the group", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const other = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const payer = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const foreign = await prisma.member.create({
+      data: { groupId: other.id, name: "B" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "10",
+        paidById: payer.id,
+        splitMode: "EQUAL",
+        participantIds: [payer.id, foreign.id],
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({
+      error: "Unii membri nu mai fac parte din grup. Reîncarcă pagina.",
+    });
+    expect(await prisma.expense.count()).toBe(0);
+  });
+
+  it("addExpense gives a specific message when percentages miss 100%", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+    const b = await prisma.member.create({
+      data: { groupId: group.id, name: "B" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "100",
+        paidById: a.id,
+        splitMode: "PERCENT",
+        participantIds: [a.id, b.id],
+        [`weight_${a.id}`]: "40",
+        [`weight_${b.id}`]: "40",
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({
+      error: "Procentele trebuie să adune fix 100%.",
+    });
+  });
+
+  it("addExpense gives a specific message when there are no participants", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "10",
+        paidById: a.id,
+        splitMode: "EQUAL",
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({ error: "Alege cel puțin un participant." });
+  });
+
   it("addPayment flags amount for a zero amount", async () => {
     const owner = await makeUser();
     const group = await makeGroup(owner.user.id);
