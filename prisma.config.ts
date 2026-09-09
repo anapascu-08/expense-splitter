@@ -12,5 +12,8 @@ export default defineConfig({
   engine: "classic",
   datasource: {
     url: env("DATABASE_URL"),
+    // `prisma migrate` needs a direct (unpooled) session — advisory locks and
+    // DDL don't work through Neon's PgBouncer. Locally this equals DATABASE_URL.
+    directUrl: env("DIRECT_URL"),
   },
 });
