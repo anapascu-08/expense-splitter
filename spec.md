@@ -173,10 +173,20 @@ Făcut până acum:
   primitive `.btn` / `.btn-primary` / `.btn-link-danger` / `.field` / `.card`
   (`@apply`) pentru radius/spațiere/border uniforme; fix font (se folosea Arial
   în loc de Geist); skeleton la prima încărcare a paginii de grup.
+- ✅ `ConfirmButton` stilizat ca dialog nativ (nu `window.confirm` brut) + sume
+  aliniate în coloană cu `tabular-nums` peste tot unde apar (cheltuieli, plăți,
+  solduri, rezumat).
+- ✅ Coloană laterală sticky pentru solduri pe desktop — pagina de grup e un
+  grid pe două coloane de la `lg:` în sus (`Membri`/`Cheltuieli` +
+  `Plăți`/`Rezumat`/`Invită`/`Export` în coloana din stânga, `Solduri` ca
+  `<aside>` sticky în dreapta, `lg:sticky lg:top-6`, într-un `.card`); pe mobil
+  rămâne un singur flux, cu Solduri în ordinea din spec (după Cheltuieli,
+  înainte de Plăți) — containerul principal crește la `lg:max-w-5xl` ca să
+  încapă cele două coloane.
 
-Rămas: câmp invalid marcat individual (`aria-invalid`), coloană laterală
-sticky pentru solduri pe desktop, container mai lat unde e tabel, sume aliniate
-în coloană cu `tabular-nums`.
+Rămas: câmp invalid marcat individual (`aria-invalid`), container mai lat
+unde e tabel (Membri/Cheltuieli/Plăți rămân pe `max-w-2xl`-ul de bază chiar și
+pe desktop, în afara coloanei de solduri).
 
 **Principii**
 - Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)

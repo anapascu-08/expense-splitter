@@ -105,7 +105,7 @@ export default async function GroupPage({
   }`;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 lg:max-w-5xl">
       <header className="flex flex-col gap-3">
         <Link
           href="/"
@@ -143,408 +143,417 @@ export default async function GroupPage({
         )}
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">Membri</h2>
-        {group.members.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Niciun membru încă. Adaugă mai jos.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {group.members.map((member) => {
-              const paid = paidCount.get(member.id) ?? 0;
-              const parts = partCount.get(member.id) ?? 0;
-              const pays = payCount.get(member.id) ?? 0;
-              const locked = paid > 0 || parts > 0 || pays > 0;
-              const reasons = [
-                paid > 0 &&
-                  `a plătit ${paid} ${paid === 1 ? "cheltuială" : "cheltuieli"}`,
-                parts > 0 &&
-                  `participă la ${parts} ${
-                    parts === 1 ? "cheltuială" : "cheltuieli"
-                  }`,
-                pays > 0 &&
-                  `apare în ${pays} ${pays === 1 ? "plată" : "plăți"}`,
-              ].filter(Boolean);
-              const boundUpdateMember = updateMember.bind(
-                null,
-                group.id,
-                member.id
-              );
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-8">
+        <div className="flex flex-col gap-8 lg:col-start-1 lg:row-start-1">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-medium">Membri</h2>
+            {group.members.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Niciun membru încă. Adaugă mai jos.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {group.members.map((member) => {
+                  const paid = paidCount.get(member.id) ?? 0;
+                  const parts = partCount.get(member.id) ?? 0;
+                  const pays = payCount.get(member.id) ?? 0;
+                  const locked = paid > 0 || parts > 0 || pays > 0;
+                  const reasons = [
+                    paid > 0 &&
+                      `a plătit ${paid} ${paid === 1 ? "cheltuială" : "cheltuieli"}`,
+                    parts > 0 &&
+                      `participă la ${parts} ${
+                        parts === 1 ? "cheltuială" : "cheltuieli"
+                      }`,
+                    pays > 0 &&
+                      `apare în ${pays} ${pays === 1 ? "plată" : "plăți"}`,
+                  ].filter(Boolean);
+                  const boundUpdateMember = updateMember.bind(
+                    null,
+                    group.id,
+                    member.id
+                  );
 
-              return (
-                <li
-                  key={member.id}
-                  className="card px-4 py-3"
-                >
-                  <details className="text-sm">
-                    <summary className="flex cursor-pointer select-none items-center justify-between">
-                      <span className="font-medium">{member.name}</span>
-                      <span className="text-xs text-gray-400">editează</span>
-                    </summary>
-                    <div className="mt-3 flex flex-col gap-3">
-                      <FeedbackForm
-                        action={boundUpdateMember}
-                        rowClassName="flex gap-2"
-                      >
-                        <input
-                          type="text"
-                          name="name"
-                          defaultValue={member.name}
-                          required
-                          className="field flex-1 text-gray-900 dark:text-gray-100"
-                        />
-                        <SubmitButton>Salvează</SubmitButton>
-                      </FeedbackForm>
-                      {locked ? (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
-                          reatribuie întâi acele cheltuieli.
-                        </p>
-                      ) : (
-                        <form action={deleteMember.bind(null, group.id, member.id)}>
-                          <ConfirmButton
-                            message={`Ștergi membrul „${member.name}”?`}
-                            className="btn-link-danger"
+                  return (
+                    <li
+                      key={member.id}
+                      className="card px-4 py-3"
+                    >
+                      <details className="text-sm">
+                        <summary className="flex cursor-pointer select-none items-center justify-between">
+                          <span className="font-medium">{member.name}</span>
+                          <span className="text-xs text-gray-400">editează</span>
+                        </summary>
+                        <div className="mt-3 flex flex-col gap-3">
+                          <FeedbackForm
+                            action={boundUpdateMember}
+                            rowClassName="flex gap-2"
                           >
-                            Șterge membrul
-                          </ConfirmButton>
-                        </form>
-                      )}
-                    </div>
-                  </details>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <FeedbackForm action={boundAddMember} rowClassName="flex gap-2">
-          <input
-            type="text"
-            name="name"
-            placeholder="Nume membru"
-            required
-            className="flex-1 field"
-          />
-          <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
-        </FeedbackForm>
-      </section>
-
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Cheltuieli</h2>
-        {group.members.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Adaugă întâi un membru ca să poți înregistra cheltuieli.
-          </p>
-        ) : (
-          <ExpenseForm
-            members={group.members}
-            action={boundAddExpense}
-            submitLabel="Adaugă cheltuială"
-            baseCurrency={base}
-          />
-        )}
-        {group.expenses.length === 0 ? (
-          group.members.length > 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Nicio cheltuială încă. Adaugă una ca să vezi soldurile.
-            </p>
-          )
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {group.expenses.map((expense) => (
-              <li
-                key={expense.id}
-                className="flex items-start justify-between card px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium">
-                    {expense.category && isExpenseCategory(expense.category) && (
-                      <span
-                        className="mr-1"
-                        title={CATEGORY_LABELS[expense.category]}
-                      >
-                        {CATEGORY_ICONS[expense.category]}
-                      </span>
-                    )}
-                    {expense.description}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    plătit de {expense.paidBy.name} · împărțit între{" "}
-                    {expense.participants.map((p) => p.member.name).join(", ")}
-                    {expense.splitMode !== "EQUAL" &&
-                      ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
-                    {expense.category &&
-                      isExpenseCategory(expense.category) &&
-                      ` · ${CATEGORY_LABELS[expense.category]}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-right font-medium tabular-nums">
-                    {formatMoney(expense.amount, expense.currency)}
-                    {expense.currency !== base && (
-                      <span className="block text-xs font-normal text-gray-400">
-                        ≈{" "}
-                        {formatMoney(
-                          convertToBase(expense.amount, expense.rateMicros),
-                          base
-                        )}
-                      </span>
-                    )}
-                  </span>
-                  <Link
-                    href={`/groups/${group.id}/expenses/${expense.id}/edit`}
-                    className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                  >
-                    editează
-                  </Link>
-                  <form action={deleteExpense.bind(null, group.id, expense.id)}>
-                    <ConfirmButton
-                      message={`Ștergi cheltuiala „${expense.description}”?`}
-                      className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                      aria-label={`Șterge ${expense.description}`}
-                    >
-                      șterge
-                    </ConfirmButton>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Solduri</h2>
-        {group.members.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Adaugă membri pentru a vedea soldurile.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {balances.map((b) => (
-              <li key={b.memberId} className="flex justify-between gap-3">
-                <span>{b.name}</span>
-                <span
-                  className={
-                    "shrink-0 tabular-nums " +
-                    (b.net > 0
-                      ? "text-green-600 dark:text-green-400"
-                      : b.net < 0
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-gray-500")
-                  }
-                >
-                  {b.net > 0 ? "i se datorează " : b.net < 0 ? "datorează " : ""}
-                  {formatMoney(Math.abs(b.net), base)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {settlement.length > 0 && (
-          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
-            <p className="font-medium">Cum se rezolvă:</p>
-            {settlement.map((t, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between gap-3"
-              >
-                <p>
-                  <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
-                  <span className="font-medium">{t.toName}</span>{" "}
-                  {formatMoney(t.amount, base)}
-                </p>
-                <QuickPayForm
-                  fromId={t.fromId}
-                  toId={t.toId}
-                  amount={baniToInput(t.amount)}
-                  action={boundAddPayment}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Plăți</h2>
-        {group.payments.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Nicio plată înregistrată încă.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {group.payments.map((payment) => (
-              <li
-                key={payment.id}
-                className="flex items-center justify-between card px-4 py-3 text-sm"
-              >
-                <span>
-                  <span className="font-medium">{payment.from.name}</span> →{" "}
-                  <span className="font-medium">{payment.to.name}</span>
-                </span>
-                <div className="flex items-center gap-3">
-                  <span className="font-medium tabular-nums">
-                    {formatMoney(payment.amount, base)}
-                  </span>
-                  <form
-                    action={deletePayment.bind(null, group.id, payment.id)}
-                  >
-                    <ConfirmButton
-                      message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatMoney(
-                        payment.amount,
-                        base
-                      )})?`}
-                      className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                    >
-                      șterge
-                    </ConfirmButton>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {group.members.length >= 2 && (
-          <FeedbackForm
-            action={boundAddPayment}
-            rowClassName="flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              De la
-              <select
-                name="fromId"
-                required
-                defaultValue=""
-                className="field"
-              >
-                <option value="" disabled>
-                  —
-                </option>
-                {group.members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              Către
-              <select
-                name="toId"
-                required
-                defaultValue=""
-                className="field"
-              >
-                <option value="" disabled>
-                  —
-                </option>
-                {group.members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              Sumă ({base})
+                            <input
+                              type="text"
+                              name="name"
+                              defaultValue={member.name}
+                              required
+                              className="field flex-1 text-gray-900 dark:text-gray-100"
+                            />
+                            <SubmitButton>Salvează</SubmitButton>
+                          </FeedbackForm>
+                          {locked ? (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
+                              reatribuie întâi acele cheltuieli.
+                            </p>
+                          ) : (
+                            <form action={deleteMember.bind(null, group.id, member.id)}>
+                              <ConfirmButton
+                                message={`Ștergi membrul „${member.name}”?`}
+                                className="btn-link-danger"
+                              >
+                                Șterge membrul
+                              </ConfirmButton>
+                            </form>
+                          )}
+                        </div>
+                      </details>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <FeedbackForm action={boundAddMember} rowClassName="flex gap-2">
               <input
                 type="text"
-                inputMode="decimal"
-                name="amount"
+                name="name"
+                placeholder="Nume membru"
                 required
-                className="field"
+                className="flex-1 field"
               />
-            </label>
-            <SubmitButton pendingLabel="Se adaugă…">Adaugă plată</SubmitButton>
-          </FeedbackForm>
-        )}
-      </section>
+              <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
+            </FeedbackForm>
+          </section>
 
-      <GroupSummary
-        expenses={expensesInBase}
-        members={group.members}
-        currency={base}
-      />
-
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Invită pe cineva</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Oricine deschide un link activ și e autentificat intră în grup.
-          Linkurile expiră după 7 zile.
-        </p>
-        {group.invites.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {group.invites.map((invite) => {
-              const url = `${origin}/invite/${invite.token}`;
-              return (
-                <li
-                  key={invite.token}
-                  className="flex items-center justify-between gap-3 card px-4 py-3 text-sm"
-                >
-                  <code className="truncate text-gray-600 dark:text-gray-300">
-                    {url}
-                  </code>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <CopyButton
-                      text={url}
-                      className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                    />
-                    <form
-                      action={revokeInvite.bind(null, group.id, invite.token)}
-                    >
-                      <SubmitButton
-                        pendingLabel="…"
-                        className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+          <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+            <h2 className="text-lg font-medium">Cheltuieli</h2>
+            {group.members.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Adaugă întâi un membru ca să poți înregistra cheltuieli.
+              </p>
+            ) : (
+              <ExpenseForm
+                members={group.members}
+                action={boundAddExpense}
+                submitLabel="Adaugă cheltuială"
+                baseCurrency={base}
+              />
+            )}
+            {group.expenses.length === 0 ? (
+              group.members.length > 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Nicio cheltuială încă. Adaugă una ca să vezi soldurile.
+                </p>
+              )
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {group.expenses.map((expense) => (
+                  <li
+                    key={expense.id}
+                    className="flex items-start justify-between card px-4 py-3"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {expense.category && isExpenseCategory(expense.category) && (
+                          <span
+                            className="mr-1"
+                            title={CATEGORY_LABELS[expense.category]}
+                          >
+                            {CATEGORY_ICONS[expense.category]}
+                          </span>
+                        )}
+                        {expense.description}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        plătit de {expense.paidBy.name} · împărțit între{" "}
+                        {expense.participants.map((p) => p.member.name).join(", ")}
+                        {expense.splitMode !== "EQUAL" &&
+                          ` · ${SPLIT_LABEL[expense.splitMode] ?? expense.splitMode}`}
+                        {expense.category &&
+                          isExpenseCategory(expense.category) &&
+                          ` · ${CATEGORY_LABELS[expense.category]}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-right font-medium tabular-nums">
+                        {formatMoney(expense.amount, expense.currency)}
+                        {expense.currency !== base && (
+                          <span className="block text-xs font-normal text-gray-400">
+                            ≈{" "}
+                            {formatMoney(
+                              convertToBase(expense.amount, expense.rateMicros),
+                              base
+                            )}
+                          </span>
+                        )}
+                      </span>
+                      <Link
+                        href={`/groups/${group.id}/expenses/${expense.id}/edit`}
+                        className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       >
-                        revocă
-                      </SubmitButton>
-                    </form>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <form action={boundCreateInvite}>
-          <SubmitButton pendingLabel="Se generează…">
-            Generează link de invitație
-          </SubmitButton>
-        </form>
-      </section>
+                        editează
+                      </Link>
+                      <form action={deleteExpense.bind(null, group.id, expense.id)}>
+                        <ConfirmButton
+                          message={`Ștergi cheltuiala „${expense.description}”?`}
+                          className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                          aria-label={`Șterge ${expense.description}`}
+                        >
+                          șterge
+                        </ConfirmButton>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-      <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-lg font-medium">Export</h2>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <a
-            href={`/groups/${group.id}/export?type=expenses`}
-            className="btn"
-          >
-            Cheltuieli (CSV)
-          </a>
-          <a
-            href={`/groups/${group.id}/export?type=expenses&format=pdf`}
-            className="btn"
-          >
-            Cheltuieli (PDF)
-          </a>
-          <a
-            href={`/groups/${group.id}/export?type=balances`}
-            className="btn"
-          >
-            Solduri (CSV)
-          </a>
-          <a
-            href={`/groups/${group.id}/export?type=balances&format=pdf`}
-            className="btn"
-          >
-            Solduri (PDF)
-          </a>
         </div>
-      </section>
+
+        <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <section className="card flex flex-col gap-3 p-4">
+            <h2 className="text-lg font-medium">Solduri</h2>
+            {group.members.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Adaugă membri pentru a vedea soldurile.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1 text-sm">
+                {balances.map((b) => (
+                  <li key={b.memberId} className="flex justify-between gap-3">
+                    <span>{b.name}</span>
+                    <span
+                      className={
+                        "shrink-0 tabular-nums " +
+                        (b.net > 0
+                          ? "text-green-600 dark:text-green-400"
+                          : b.net < 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-gray-500")
+                      }
+                    >
+                      {b.net > 0 ? "i se datorează " : b.net < 0 ? "datorează " : ""}
+                      {formatMoney(Math.abs(b.net), base)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {settlement.length > 0 && (
+              <div className="mt-2 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
+                <p className="font-medium">Cum se rezolvă:</p>
+                {settlement.map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 lg:flex-col lg:items-start lg:gap-2"
+                  >
+                    <p>
+                      <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
+                      <span className="font-medium">{t.toName}</span>{" "}
+                      {formatMoney(t.amount, base)}
+                    </p>
+                    <QuickPayForm
+                      fromId={t.fromId}
+                      toId={t.toId}
+                      amount={baniToInput(t.amount)}
+                      action={boundAddPayment}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </aside>
+
+        <div className="flex flex-col gap-8 lg:col-start-1 lg:row-start-2">
+          <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800 lg:border-t-0 lg:pt-0">
+            <h2 className="text-lg font-medium">Plăți</h2>
+            {group.payments.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Nicio plată înregistrată încă.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {group.payments.map((payment) => (
+                  <li
+                    key={payment.id}
+                    className="flex items-center justify-between card px-4 py-3 text-sm"
+                  >
+                    <span>
+                      <span className="font-medium">{payment.from.name}</span> →{" "}
+                      <span className="font-medium">{payment.to.name}</span>
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium tabular-nums">
+                        {formatMoney(payment.amount, base)}
+                      </span>
+                      <form
+                        action={deletePayment.bind(null, group.id, payment.id)}
+                      >
+                        <ConfirmButton
+                          message={`Ștergi plata ${payment.from.name} → ${payment.to.name} (${formatMoney(
+                            payment.amount,
+                            base
+                          )})?`}
+                          className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        >
+                          șterge
+                        </ConfirmButton>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {group.members.length >= 2 && (
+              <FeedbackForm
+                action={boundAddPayment}
+                rowClassName="flex flex-col gap-3 sm:flex-row sm:items-end"
+              >
+                <label className="flex flex-1 flex-col gap-1 text-sm">
+                  De la
+                  <select
+                    name="fromId"
+                    required
+                    defaultValue=""
+                    className="field"
+                  >
+                    <option value="" disabled>
+                      —
+                    </option>
+                    {group.members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-1 flex-col gap-1 text-sm">
+                  Către
+                  <select
+                    name="toId"
+                    required
+                    defaultValue=""
+                    className="field"
+                  >
+                    <option value="" disabled>
+                      —
+                    </option>
+                    {group.members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-1 flex-col gap-1 text-sm">
+                  Sumă ({base})
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    name="amount"
+                    required
+                    className="field"
+                  />
+                </label>
+                <SubmitButton pendingLabel="Se adaugă…">Adaugă plată</SubmitButton>
+              </FeedbackForm>
+            )}
+          </section>
+
+          <GroupSummary
+            expenses={expensesInBase}
+            members={group.members}
+            currency={base}
+          />
+
+          <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+            <h2 className="text-lg font-medium">Invită pe cineva</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Oricine deschide un link activ și e autentificat intră în grup.
+              Linkurile expiră după 7 zile.
+            </p>
+            {group.invites.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {group.invites.map((invite) => {
+                  const url = `${origin}/invite/${invite.token}`;
+                  return (
+                    <li
+                      key={invite.token}
+                      className="flex items-center justify-between gap-3 card px-4 py-3 text-sm"
+                    >
+                      <code className="truncate text-gray-600 dark:text-gray-300">
+                        {url}
+                      </code>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <CopyButton
+                          text={url}
+                          className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                        />
+                        <form
+                          action={revokeInvite.bind(null, group.id, invite.token)}
+                        >
+                          <SubmitButton
+                            pendingLabel="…"
+                            className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+                          >
+                            revocă
+                          </SubmitButton>
+                        </form>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <form action={boundCreateInvite}>
+              <SubmitButton pendingLabel="Se generează…">
+                Generează link de invitație
+              </SubmitButton>
+            </form>
+          </section>
+
+          <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+            <h2 className="text-lg font-medium">Export</h2>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <a
+                href={`/groups/${group.id}/export?type=expenses`}
+                className="btn"
+              >
+                Cheltuieli (CSV)
+              </a>
+              <a
+                href={`/groups/${group.id}/export?type=expenses&format=pdf`}
+                className="btn"
+              >
+                Cheltuieli (PDF)
+              </a>
+              <a
+                href={`/groups/${group.id}/export?type=balances`}
+                className="btn"
+              >
+                Solduri (CSV)
+              </a>
+              <a
+                href={`/groups/${group.id}/export?type=balances&format=pdf`}
+                className="btn"
+              >
+                Solduri (PDF)
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }
