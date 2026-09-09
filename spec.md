@@ -183,10 +183,18 @@ Făcut până acum:
   rămâne un singur flux, cu Solduri în ordinea din spec (după Cheltuieli,
   înainte de Plăți) — containerul principal crește la `lg:max-w-5xl` ca să
   încapă cele două coloane.
+- ✅ Câmp invalid marcat individual — `FormState` capătă un `field?: string |
+  string[]` opțional lângă `error`, populat de acțiunile din `actions.ts` /
+  `auth-actions.ts` pentru fiecare validare legată de un anume input (ex.
+  `addPayment` cu `fromId === toId` marchează `["fromId", "toId"]`).
+  `FeedbackForm` citește `state.field` și traversează recursiv `children`
+  (inclusiv prin `<label>`) ca să adauge `aria-invalid` + `aria-describedby`
+  pe elementul cu `name`-ul potrivit; `ExpenseForm` și `AuthForm` (care nu
+  trec prin `FeedbackForm`) fac aceeași marcare direct pe câmpurile proprii.
+  Vizual, `.field[aria-invalid="true"]` capătă bordură roșie în `globals.css`.
 
-Rămas: câmp invalid marcat individual (`aria-invalid`), container mai lat
-unde e tabel (Membri/Cheltuieli/Plăți rămân pe `max-w-2xl`-ul de bază chiar și
-pe desktop, în afara coloanei de solduri).
+Rămas: container mai lat unde e tabel (Membri/Cheltuieli/Plăți rămân pe
+`max-w-2xl`-ul de bază chiar și pe desktop, în afara coloanei de solduri).
 
 **Principii**
 - Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)
