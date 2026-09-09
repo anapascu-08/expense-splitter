@@ -3,8 +3,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { register } from "@/app/auth-actions";
 import { AuthForm } from "@/app/auth-form";
 
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   if (await getCurrentUser()) redirect("/");
+
+  const { next } = await searchParams;
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
@@ -14,7 +20,7 @@ export default async function RegisterPage() {
           Creează un cont ca să pornești sau să intri într-un grup.
         </p>
       </header>
-      <AuthForm mode="register" action={register} />
+      <AuthForm mode="register" action={register} next={next} />
     </main>
   );
 }

@@ -63,7 +63,9 @@ export async function register(
     throw err;
   }
 
-  redirect("/");
+  // Same `next` hand-off as login, so an invited new user who registers instead
+  // of logging in still lands back on the invite (hidden field, sanitised).
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function login(

@@ -23,6 +23,9 @@ export function AuthForm({ mode, action, next }: Props) {
   const errorId = useId();
   const isRegister = mode === "register";
 
+  const withNext = (path: string) =>
+    next ? `${path}?next=${encodeURIComponent(next)}` : path;
+
   const invalidFields = new Set(
     state?.field
       ? Array.isArray(state.field)
@@ -76,7 +79,7 @@ export function AuthForm({ mode, action, next }: Props) {
 
       {!isRegister && (
         <Link
-          href="/forgot-password"
+          href={withNext("/forgot-password")}
           className="self-end text-xs text-gray-500 hover:underline dark:text-gray-400"
         >
           Ai uitat parola?
@@ -108,14 +111,14 @@ export function AuthForm({ mode, action, next }: Props) {
         {isRegister ? (
           <>
             Ai deja cont?{" "}
-            <Link href="/login" className="underline">
+            <Link href={withNext("/login")} className="underline">
               Autentifică-te
             </Link>
           </>
         ) : (
           <>
             Nu ai cont?{" "}
-            <Link href="/register" className="underline">
+            <Link href={withNext("/register")} className="underline">
               Creează unul
             </Link>
           </>

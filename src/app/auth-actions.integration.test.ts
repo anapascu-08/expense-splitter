@@ -27,6 +27,36 @@ describe("register", () => {
     expect(await getCurrentUser()).toMatchObject({ email: "new@test.dev" });
   });
 
+  it("redirects to a safe `next` after signing up", async () => {
+    const url = await catchRedirect(
+      register(
+        undefined,
+        formData({
+          name: "Invited",
+          email: "invited@test.dev",
+          password: "password123",
+          next: "/invite/some-token",
+        })
+      )
+    );
+    expect(url).toBe("/invite/some-token");
+  });
+
+  it("ignores an off-site `next` and redirects home", async () => {
+    const url = await catchRedirect(
+      register(
+        undefined,
+        formData({
+          name: "Safe",
+          email: "safe-reg@test.dev",
+          password: "password123",
+          next: "//evil.com",
+        })
+      )
+    );
+    expect(url).toBe("/");
+  });
+
   it("rejects a duplicate email", async () => {
     await makeUser({ email: "dup@test.dev" });
     const state = await register(
