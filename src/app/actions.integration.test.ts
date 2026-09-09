@@ -683,6 +683,28 @@ describe("acceptInvite", () => {
       where: { groupId_userId: { groupId: group.id, userId: joiner.user.id } },
     });
     expect(membership?.role).toBe("member");
+
+    // and gets a Member slot so they show up in the balances immediately
+    const slots = await prisma.member.findMany({
+      where: { groupId: group.id, userId: joiner.user.id },
+    });
+    expect(slots).toHaveLength(1);
+    expect(slots[0].name).toBe(joiner.user.name);
+  });
+
+  it("does not create a second Member slot on a repeat accept", async () => {
+    const { group, invite } = await makeInvite();
+    const joiner = await makeUser();
+    await signIn(joiner.user.id);
+
+    await catchRedirect(acceptInvite(invite.token));
+    await catchRedirect(acceptInvite(invite.token));
+
+    expect(
+      await prisma.member.count({
+        where: { groupId: group.id, userId: joiner.user.id },
+      })
+    ).toBe(1);
   });
 
   it("does nothing for an expired invite", async () => {

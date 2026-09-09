@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   toBani,
@@ -521,5 +522,30 @@ export async function acceptInvite(token: string) {
     create: { groupId: invite.groupId, userId: user.id, role: "member" },
     update: {},
   });
+
+  // Also give the new arrival a Member slot so they show up in the balances
+  // straight away (there's no name-claiming flow yet — see spec). Skip if they
+  // already have one; the @@unique([groupId, userId]) covers a concurrent race.
+  const hasSlot = await prisma.member.findFirst({
+    where: { groupId: invite.groupId, userId: user.id },
+    select: { id: true },
+  });
+  if (!hasSlot) {
+    try {
+      await prisma.member.create({
+        data: { groupId: invite.groupId, name: user.name, userId: user.id },
+      });
+    } catch (err) {
+      if (
+        !(
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === "P2002"
+        )
+      ) {
+        throw err;
+      }
+    }
+  }
+
   redirect(`/groups/${invite.groupId}`);
 }
