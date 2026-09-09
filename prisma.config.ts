@@ -11,9 +11,11 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
-    // `prisma migrate` needs a direct (unpooled) session — advisory locks and
-    // DDL don't work through Neon's PgBouncer. Locally this equals DATABASE_URL.
-    directUrl: env("DIRECT_URL"),
+    // This datasource is only used by the Prisma CLI (migrate / studio / db).
+    // It must be the direct, unpooled connection: advisory locks and DDL don't
+    // work through Neon's PgBouncer. Locally DIRECT_URL equals DATABASE_URL.
+    // The app at runtime connects via @prisma/adapter-pg + process.env
+    // .DATABASE_URL (see src/lib/prisma.ts), independent of this block.
+    url: env("DIRECT_URL"),
   },
 });
