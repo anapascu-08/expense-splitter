@@ -9,7 +9,7 @@ function Bar({ className = "" }: { className?: string }) {
 
 export default function GroupLoading() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 lg:max-w-6xl">
       <div className="flex flex-col gap-3">
         <Bar className="h-4 w-32" />
         <Bar className="h-8 w-56" />

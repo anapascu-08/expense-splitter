@@ -105,7 +105,7 @@ export default async function GroupPage({
   }`;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 lg:max-w-5xl">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 lg:max-w-6xl">
       <header className="flex flex-col gap-3">
         <Link
           href="/"

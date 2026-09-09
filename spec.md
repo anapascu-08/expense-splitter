@@ -155,7 +155,7 @@ unui slot `Member` la accept invitație.
   randează bare CSS (fără bibliotecă de charts): total grup, cheltuieli pe
   categorie, cât a plătit fiecare membru
 
-### Faza 6 — UI/UX & polish vizual 🔶 (în lucru)
+### Faza 6 — UI/UX & polish vizual ✅
 
 Până acum UI-ul e strict funcțional (formulare + tabele Tailwind, fără
 tratare de stări). Faza asta îl aduce la un nivel „prezentabil", fără
@@ -181,7 +181,7 @@ Făcut până acum:
   `Plăți`/`Rezumat`/`Invită`/`Export` în coloana din stânga, `Solduri` ca
   `<aside>` sticky în dreapta, `lg:sticky lg:top-6`, într-un `.card`); pe mobil
   rămâne un singur flux, cu Solduri în ordinea din spec (după Cheltuieli,
-  înainte de Plăți) — containerul principal crește la `lg:max-w-5xl` ca să
+  înainte de Plăți) — containerul principal crește la `lg:max-w-6xl` ca să
   încapă cele două coloane.
 - ✅ Câmp invalid marcat individual — `FormState` capătă un `field?: string |
   string[]` opțional lângă `error`, populat de acțiunile din `actions.ts` /
@@ -192,9 +192,11 @@ Făcut până acum:
   pe elementul cu `name`-ul potrivit; `ExpenseForm` și `AuthForm` (care nu
   trec prin `FeedbackForm`) fac aceeași marcare direct pe câmpurile proprii.
   Vizual, `.field[aria-invalid="true"]` capătă bordură roșie în `globals.css`.
-
-Rămas: container mai lat unde e tabel (Membri/Cheltuieli/Plăți rămân pe
-`max-w-2xl`-ul de bază chiar și pe desktop, în afara coloanei de solduri).
+- ✅ Container mai lat unde e tabel — containerul paginii de grup (și
+  skeleton-ul din `loading.tsx`, ca să nu sară layout-ul la încărcare) trece
+  de la `lg:max-w-5xl` la `lg:max-w-6xl`; coloana din stânga (Membri /
+  Cheltuieli / Plăți / Rezumat) câștigă astfel ~130px față de `max-w-2xl`-ul
+  de bază, chiar și după ce coloana de solduri își ia partea ei.
 
 **Principii**
 - Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)
