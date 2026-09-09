@@ -190,13 +190,14 @@ for (const p of payments) {
 const sqlFile = join(tmpdir(), `expense-splitter-seed-${process.pid}.sql`);
 writeFileSync(sqlFile, stmts.join("\n") + "\n");
 
+// Don't default DATABASE_URL here: unlike the old SQLite setup, there's no
+// connectionless fallback for Postgres. Leave it out of `env` when unset so
+// the child `prisma` process falls back to its own `prisma.config.ts`
+// (which loads `.env` via `dotenv/config`) instead of inheriting nothing.
 const result = spawnSync(
   "npx",
   ["prisma", "db", "execute", "--file", sqlFile, "--schema", "prisma/schema.prisma"],
-  {
-    stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL ?? "file:./dev.db" },
-  }
+  { stdio: "inherit", env: process.env }
 );
 unlinkSync(sqlFile);
 
