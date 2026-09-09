@@ -15,6 +15,7 @@
     "db:reset": "prisma migrate reset --force --skip-seed && node prisma/seed.mjs"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.19.3",
     "next": "16.3.3",
     "prisma": "^6.19.3",
