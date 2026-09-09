@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   toBani,
+  parseDecimal,
   formatBani,
   formatMoney,
   baniToInput,
@@ -18,6 +19,52 @@ import {
 // Characterization tests: these pin the CURRENT behavior of the money helpers,
 // not necessarily the ideal behavior. Edge cases worth noting are called out.
 
+describe("parseDecimal", () => {
+  it("reads Romanian format: '.' groups thousands, ',' is the decimal", () => {
+    expect(parseDecimal("1.234,56")).toBe(1234.56);
+    expect(parseDecimal("2.000,00")).toBe(2000);
+    expect(parseDecimal("1.234.567,89")).toBe(1234567.89);
+  });
+
+  it("reads English format: ',' groups thousands, '.' is the decimal", () => {
+    expect(parseDecimal("1,234.56")).toBe(1234.56);
+    expect(parseDecimal("1,234,567.89")).toBe(1234567.89);
+  });
+
+  it("reads plain decimals with either separator", () => {
+    expect(parseDecimal("12.34")).toBe(12.34);
+    expect(parseDecimal("12,34")).toBe(12.34);
+    expect(parseDecimal("1234.5")).toBe(1234.5);
+    expect(parseDecimal("0.05")).toBe(0.05);
+    expect(parseDecimal("100")).toBe(100);
+  });
+
+  it("treats a lone separator + exactly 3 trailing digits as thousands", () => {
+    // ambiguous on its own; resolved toward how amounts are displayed
+    expect(parseDecimal("1.500")).toBe(1500);
+    expect(parseDecimal("1,500")).toBe(1500);
+    expect(parseDecimal("12.345")).toBe(12345);
+  });
+
+  it("keeps it a decimal when the trailing group is not 3 digits", () => {
+    expect(parseDecimal("1.5")).toBe(1.5);
+    expect(parseDecimal("1.50")).toBe(1.5);
+    expect(parseDecimal("1.5000")).toBe(1.5);
+    expect(parseDecimal("0.001")).toBe(0.001); // leading zero -> not grouping
+  });
+
+  it("strips surrounding text/whitespace and honours a leading minus", () => {
+    expect(parseDecimal("  1.234,56 lei ")).toBe(1234.56);
+    expect(parseDecimal("-5")).toBe(-5);
+    expect(parseDecimal("-1.234,50")).toBe(-1234.5);
+  });
+
+  it("returns NaN for junk", () => {
+    expect(parseDecimal("")).toBeNaN();
+    expect(parseDecimal("abc")).toBeNaN();
+  });
+});
+
 describe("toBani", () => {
   it("converts a plain RON string to integer bani", () => {
     expect(toBani("12.34")).toBe(1234);
@@ -29,13 +76,16 @@ describe("toBani", () => {
     expect(toBani("12,34")).toBe(1234);
   });
 
-  it("rounds to the nearest bani", () => {
-    expect(toBani("1.006")).toBe(101);
-    expect(toBani("1.004")).toBe(100);
+  it("reads Romanian- and English-formatted amounts", () => {
+    expect(toBani("1.500")).toBe(150000);
+    expect(toBani("1.234,56")).toBe(123456);
+    expect(toBani("1,234.56")).toBe(123456);
+    expect(toBani("2.000,00")).toBe(200000);
   });
 
-  it("KNOWN QUIRK: 1.005 rounds down because 1.005*100 is 100.4999… in IEEE754", () => {
-    expect(toBani("1.005")).toBe(100);
+  it("rounds to the nearest bani", () => {
+    expect(toBani("12.3456")).toBe(1235);
+    expect(toBani("12.3444")).toBe(1234);
   });
 
   it("returns 0 for non-numeric input", () => {
@@ -43,8 +93,9 @@ describe("toBani", () => {
     expect(toBani("abc")).toBe(0);
   });
 
-  it("parses a leading number out of mixed input (parseFloat behavior)", () => {
-    expect(toBani("12.34 lei")).toBe(1234);
+  it("ignores surrounding text and whitespace", () => {
+    expect(toBani("12,34 lei")).toBe(1234);
+    expect(toBani("  1.234,56 RON ")).toBe(123456);
   });
 
   it("does not clamp negatives", () => {

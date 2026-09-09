@@ -2,8 +2,57 @@
 
 import { currencySymbol } from "@/lib/currencies";
 
+// Parse a human-typed number that may be in Romanian format ("1.234,56"),
+// English format ("1,234.56" / "1234.56"), or plain ("1234,56" / "1234").
+// Returns NaN for junk (callers clamp to 0).
+//
+// Disambiguation:
+//  - both "." and "," present  -> the LAST one is the decimal separator, the
+//    other is thousands grouping ("1.234,56" -> 1234.56, "1,234.56" -> 1234.56).
+//  - one separator, repeated    -> thousands grouping ("1.234.567" -> 1234567).
+//  - one separator, once, with exactly 3 trailing digits and a 1-3 digit lead
+//    -> ambiguous; treated as thousands to match how amounts are displayed
+//    ("1.500" -> 1500, "1.006" -> 1006). The expense form shows the parsed
+//    amount back so this stays visible.
+//  - otherwise                  -> decimal ("12,34" -> 12.34, "1.5" -> 1.5).
+export function parseDecimal(input: string): number {
+  const cleaned = input.replace(/[^\d.,-]/g, "");
+  const sign = cleaned.trimStart().startsWith("-") ? -1 : 1;
+  const digits = cleaned.replace(/-/g, "");
+  if (digits === "") return NaN;
+
+  const lastDot = digits.lastIndexOf(".");
+  const lastComma = digits.lastIndexOf(",");
+
+  let normalized: string;
+  if (lastDot !== -1 && lastComma !== -1) {
+    const decSep = lastComma > lastDot ? "," : ".";
+    const thouSep = decSep === "," ? "." : ",";
+    normalized = digits.split(thouSep).join("").replace(decSep, ".");
+  } else if (lastDot !== -1) {
+    normalized = normalizeSingleSeparator(digits, ".");
+  } else if (lastComma !== -1) {
+    normalized = normalizeSingleSeparator(digits, ",");
+  } else {
+    normalized = digits;
+  }
+
+  const value = Number.parseFloat(normalized);
+  return Number.isFinite(value) ? sign * value : NaN;
+}
+
+// `sep` occurs only as itself in `s` (no other separator). Decide whether it's
+// a decimal point or thousands grouping and return a "."-decimal string.
+function normalizeSingleSeparator(s: string, sep: string): string {
+  const parts = s.split(sep);
+  if (parts.length > 2) return parts.join(""); // repeated -> thousands
+  const [head, tail] = parts;
+  const looksGrouped = tail.length === 3 && /^[1-9]\d{0,2}$/.test(head);
+  return looksGrouped ? head + tail : `${head}.${tail}`;
+}
+
 export function toBani(ronInput: string): number {
-  const value = Number.parseFloat(ronInput.replace(",", "."));
+  const value = parseDecimal(ronInput);
   if (!Number.isFinite(value)) return 0;
   return Math.round(value * 100);
 }
@@ -28,7 +77,7 @@ export function baniToInput(bani: number): string {
 
 // Percentages are stored as basis points (1% = 100 bp) so 33.33% survives without float drift.
 export function toBasisPoints(percentInput: string): number {
-  const value = Number.parseFloat(percentInput.replace(",", "."));
+  const value = parseDecimal(percentInput);
   if (!Number.isFinite(value)) return 0;
   return Math.round(value * 100);
 }
@@ -42,7 +91,7 @@ export const FULL_PERCENT_BP = 10000;
 // Shares are small whole numbers: a participant with 2 shares owes twice as much
 // as one with 1. Anything non-integer is rounded to the nearest whole share.
 export function toShares(input: string): number {
-  const value = Number.parseFloat(input.replace(",", "."));
+  const value = parseDecimal(input);
   if (!Number.isFinite(value)) return 0;
   return Math.round(value);
 }
@@ -58,7 +107,7 @@ export function sharesToInput(shares: number): string {
 export const RATE_SCALE = 1_000_000;
 
 export function toRateMicros(input: string): number {
-  const value = Number.parseFloat(input.replace(",", "."));
+  const value = parseDecimal(input);
   if (!Number.isFinite(value) || value <= 0) return 0;
   return Math.round(value * RATE_SCALE);
 }

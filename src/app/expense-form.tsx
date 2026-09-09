@@ -6,6 +6,7 @@ import {
   formatBani,
   formatMoney,
   convertToBase,
+  parseDecimal,
   toRateMicros,
   RATE_SCALE,
 } from "@/lib/money";
@@ -50,7 +51,7 @@ const inputClass =
   "field";
 
 function parseNum(value: string): number {
-  const n = Number.parseFloat(value.replace(",", "."));
+  const n = parseDecimal(value);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -243,6 +244,20 @@ export function ExpenseForm({
         </label>
       </div>
 
+      {amount.trim() !== "" && (
+        <p
+          className={
+            amountBani > 0
+              ? "-mt-1 text-xs text-gray-500 dark:text-gray-400"
+              : "-mt-1 text-xs text-red-600 dark:text-red-400"
+          }
+        >
+          {amountBani > 0
+            ? `= ${formatMoney(amountBani, currency)}`
+            : "Sumă invalidă — verifică formatul."}
+        </p>
+      )}
+
       {isForeign && (
         <label className="flex flex-col gap-1 text-sm">
           Curs: 1 {currency} = ? {baseCurrency}
@@ -374,6 +389,19 @@ export function ExpenseForm({
           );
         })}
       </fieldset>
+
+      {splitMode === "EQUAL" && amountBani > 0 && participants.length > 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {formatBani(
+            splitAmount(
+              amountBani,
+              participants.map(() => 1)
+            )[0]
+          )}{" "}
+          {curSym} de persoană ({participants.length}{" "}
+          {participants.length === 1 ? "participant" : "participanți"})
+        </p>
+      )}
 
       {allocation !== null && (
         <p
