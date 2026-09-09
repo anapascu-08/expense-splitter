@@ -174,7 +174,9 @@ export async function addMember(
     return { error: "Numele membrului e obligatoriu.", field: "name" };
 
   const clash = await prisma.member.findFirst({
-    where: { groupId, name },
+    // Case-insensitive: "Ana" and "ana" as two members read as a bug in the
+    // balances list.
+    where: { groupId, name: { equals: name, mode: "insensitive" } },
     select: { id: true },
   });
   if (clash)
@@ -197,7 +199,11 @@ export async function updateMember(
     return { error: "Numele membrului nu poate fi gol.", field: "name" };
 
   const clash = await prisma.member.findFirst({
-    where: { groupId, name, id: { not: memberId } },
+    where: {
+      groupId,
+      name: { equals: name, mode: "insensitive" },
+      id: { not: memberId },
+    },
     select: { id: true },
   });
   if (clash)

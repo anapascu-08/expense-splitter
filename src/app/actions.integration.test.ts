@@ -111,6 +111,16 @@ describe("form-level validation feedback", () => {
       field: "name",
     });
 
+    // case-insensitive: "alice" must clash with the existing "Alice"
+    const dupCase = await addMemberAction(
+      undefined,
+      formData({ name: "alice", groupId: group.id })
+    );
+    expect(dupCase).toEqual({
+      error: '„alice” există deja în grup.',
+      field: "name",
+    });
+
     const ok = await addMemberAction(
       undefined,
       formData({ name: "Bob", groupId: group.id })
