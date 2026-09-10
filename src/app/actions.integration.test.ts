@@ -624,6 +624,31 @@ describe("archiveMember / unarchiveMember", () => {
     expect(await archivedAt(bob.id)).toBeNull();
   });
 
+  it("refuses to archive the owner's own slot", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const ownerSlot = await prisma.member.create({
+      data: { groupId: group.id, name: "Owner", userId: owner.user.id },
+    });
+    // history, net zero (pays a solo expense -> paid == owed)
+    await addExpense(
+      undefined,
+      formData({
+        description: "solo",
+        amount: "10",
+        paidById: ownerSlot.id,
+        splitMode: "EQUAL",
+        participantIds: [ownerSlot.id],
+        groupId: group.id,
+      })
+    );
+
+    await archiveMember(group.id, ownerSlot.id);
+
+    expect(await archivedAt(ownerSlot.id)).toBeNull();
+  });
+
   it("does nothing when a non-owner calls archive", async () => {
     const { group, ana, bob } = await owedPair();
     await addPayment(

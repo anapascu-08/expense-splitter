@@ -263,7 +263,13 @@ export default async function GroupPage({
                           </FeedbackForm>
                           {isOwner &&
                             locked &&
-                            ((netByMember.get(member.id) ?? 0) === 0 ? (
+                            (member.userId === group.ownerId ? (
+                              <p className="text-xs text-gray-600 dark:text-gray-300">
+                                {reasons.join(" și ")}. Nu poate fi șters
+                                (ștergerea ar rescrie cheltuielile trecute);
+                                redenumirea merge oricând.
+                              </p>
+                            ) : (netByMember.get(member.id) ?? 0) === 0 ? (
                               <div className="flex flex-col gap-2">
                                 <p className="text-xs text-gray-600 dark:text-gray-300">
                                   {reasons.join(" și ")} — nu poate fi șters

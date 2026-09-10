@@ -292,7 +292,8 @@ export async function archiveMember(groupId: string, memberId: string) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     select: {
-      members: { select: { id: true, name: true } },
+      ownerId: true,
+      members: { select: { id: true, name: true, userId: true } },
       expenses: {
         select: {
           amount: true,
@@ -304,7 +305,9 @@ export async function archiveMember(groupId: string, memberId: string) {
       payments: { select: { amount: true, fromId: true, toId: true } },
     },
   });
-  if (!group || !group.members.some((m) => m.id === memberId)) return;
+  const target = group?.members.find((m) => m.id === memberId);
+  // The owner's own slot stays — they always need a face in their group.
+  if (!group || !target || target.userId === group.ownerId) return;
 
   const expensesInBase = group.expenses.map((e) => ({
     ...e,
