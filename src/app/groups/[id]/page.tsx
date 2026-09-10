@@ -391,7 +391,11 @@ export default async function GroupPage({
                             )}
                           >
                             <ConfirmButton
-                              message={`Ștergi cheltuiala „${expense.description}”?`}
+                              message={
+                                group.payments.length > 0
+                                  ? `Ștergi cheltuiala „${expense.description}”? Grupul are plăți înregistrate — ștergerea poate face soldurile să nu mai reflecte ce s-a plătit deja.`
+                                  : `Ștergi cheltuiala „${expense.description}”?`
+                              }
                               className="text-sm font-medium text-red-700 transition hover:underline dark:text-red-400"
                               aria-label={`Șterge ${expense.description}`}
                             >
