@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireGroupAccess } from "@/lib/access";
+import { BackLink } from "@/app/back-link";
 import {
   baniToInput,
   basisPointsToInput,
@@ -45,14 +45,11 @@ export default async function EditExpensePage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
-      <header>
-        <Link
-          href={`/groups/${id}`}
-          className="text-sm text-gray-600 hover:underline dark:text-gray-300"
-        >
-          ← înapoi la {expense.group.name}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Editează cheltuiala</h1>
+      <header className="flex flex-col gap-1">
+        <BackLink href={`/groups/${id}`}>
+          înapoi la {expense.group.name}
+        </BackLink>
+        <h1 className="text-2xl font-semibold">Editează cheltuiala</h1>
       </header>
 
       <ExpenseForm

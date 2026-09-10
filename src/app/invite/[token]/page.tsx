@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { acceptInvite } from "@/app/actions";
+import { BackLink } from "@/app/back-link";
 
 export default async function InvitePage({
   params,
@@ -32,9 +32,7 @@ export default async function InvitePage({
           Linkul a expirat, a fost revocat sau nu există. Cere-i persoanei care
           te-a invitat un link nou.
         </p>
-        <Link href="/" className="text-sm underline">
-          ← Grupurile tale
-        </Link>
+        <BackLink href="/">Grupurile tale</BackLink>
       </main>
     );
   }

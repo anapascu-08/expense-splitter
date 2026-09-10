@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
+import { BackLink } from "@/app/back-link";
 
 export default function Error({
   error,
@@ -21,13 +21,11 @@ export default function Error({
         A apărut o eroare neașteptată. Încearcă din nou; dacă persistă, revino
         mai târziu.
       </p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <button type="button" onClick={reset} className="btn-primary">
           Reîncearcă
         </button>
-        <Link href="/" className="btn">
-          ← Grupurile tale
-        </Link>
+        <BackLink href="/">Grupurile tale</BackLink>
       </div>
     </main>
   );

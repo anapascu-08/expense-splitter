@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackLink } from "@/app/back-link";
 
 export default function NotFound() {
   return (
@@ -7,9 +7,7 @@ export default function NotFound() {
       <p className="text-sm text-gray-600 dark:text-gray-300">
         Linkul e greșit, a expirat sau nu ai acces la ce încerci să deschizi.
       </p>
-      <Link href="/" className="text-sm font-medium underline">
-        ← Grupurile tale
-      </Link>
+      <BackLink href="/">Grupurile tale</BackLink>
     </main>
   );
 }

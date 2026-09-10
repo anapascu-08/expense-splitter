@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { requestPasswordReset } from "@/app/auth-actions";
+import { BackLink } from "@/app/back-link";
 import { FeedbackForm } from "@/app/feedback-form";
 import { SubmitButton } from "@/app/submit-button";
 
@@ -36,12 +36,7 @@ export default async function ForgotPasswordPage() {
           Trimite linkul
         </SubmitButton>
       </FeedbackForm>
-      <Link
-        href="/login"
-        className="text-sm text-gray-600 hover:underline dark:text-gray-300"
-      >
-        ← Înapoi la autentificare
-      </Link>
+      <BackLink href="/login">Înapoi la autentificare</BackLink>
     </main>
   );
 }
