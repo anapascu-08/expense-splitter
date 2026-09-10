@@ -230,7 +230,7 @@ export default async function GroupPage({
                             ) : (
                               member.userId && (
                                 <span className="ml-2 text-xs font-medium text-gray-600 dark:text-gray-300">
-                                  cont legat
+                                  revendicat
                                 </span>
                               )
                             )}
