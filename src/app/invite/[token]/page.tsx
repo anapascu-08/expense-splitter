@@ -57,11 +57,12 @@ export default async function InvitePage({
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
-      <h1 className="text-2xl font-semibold">Ai o invitație</h1>
+      <h1 className="text-2xl font-semibold">Ești invitat</h1>
       <p className="text-sm text-gray-600 dark:text-gray-300">
         <span className="font-medium">{invite.createdBy.name}</span> te-a invitat
         în grupul{" "}
-        <span className="font-medium">„{invite.group.name}”</span>.
+        <span className="font-medium">„{invite.group.name}”</span>. Acceptă mai
+        jos ca să vezi cheltuielile și să intri în solduri.
       </p>
       <form action={acceptInvite.bind(null, token)} className="flex flex-col gap-4">
         {unclaimed.length > 0 && (
