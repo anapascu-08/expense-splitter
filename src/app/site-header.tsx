@@ -7,12 +7,12 @@ export async function SiteHeader() {
   const user = await getCurrentUser();
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
-      <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3 lg:max-w-6xl">
-        <Link href="/" className="shrink-0 text-sm font-semibold">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-background dark:border-gray-800">
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3.5 lg:max-w-6xl">
+        <Link href="/" className="shrink-0 text-lg font-semibold">
           Expense Splitter
         </Link>
-        <div className="flex min-w-0 items-center gap-3 text-sm">
+        <div className="flex min-w-0 items-center gap-3 text-base">
           <ThemeToggle />
           <span
             aria-hidden="true"

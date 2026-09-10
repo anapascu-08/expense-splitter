@@ -409,7 +409,7 @@ export default async function GroupPage({
 
         </div>
 
-        <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        <aside className="lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1 lg:row-span-2">
           <section className="card flex flex-col gap-3 p-4">
             <h2 className="text-lg font-medium">Solduri</h2>
             {group.members.length === 0 ? (
