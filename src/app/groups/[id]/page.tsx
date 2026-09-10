@@ -424,9 +424,13 @@ export default async function GroupPage({
             {settlement.length > 0 && (
               <div className="mt-2 flex flex-col gap-2 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
                 <p className="font-medium">Cum se rezolvă:</p>
-                {settlement.map((t, i) => (
+                {settlement.map((t) => (
+                  // Key by the debtor→creditor pair, not the array index: after
+                  // one row is settled the list reshuffles, and an index key
+                  // would leave a settled row's "achitat" state latched onto
+                  // whatever transfer slid into its position.
                   <div
-                    key={i}
+                    key={`${t.fromId}-${t.toId}`}
                     className="flex items-center justify-between gap-3 lg:flex-col lg:items-start lg:gap-2"
                   >
                     <p>

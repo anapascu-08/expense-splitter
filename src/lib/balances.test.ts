@@ -152,4 +152,19 @@ describe("computeSettlement", () => {
     ];
     expect(computeSettlement(balances)).toEqual([]);
   });
+
+  it("never emits two transfers for the same debtor→creditor pair", () => {
+    // The group page keys the settlement rows by `${fromId}-${toId}`, so each
+    // such pair must be unique or a stale row's action state leaks onto another.
+    const balances: MemberBalance[] = [
+      { memberId: "a", name: "Ana", paid: 0, owed: 0, sent: 0, received: 0, net: 60 },
+      { memberId: "b", name: "Bob", paid: 0, owed: 0, sent: 0, received: 0, net: 40 },
+      { memberId: "c", name: "Cip", paid: 0, owed: 0, sent: 0, received: 0, net: -55 },
+      { memberId: "d", name: "Dan", paid: 0, owed: 0, sent: 0, received: 0, net: -45 },
+    ];
+    const transfers = computeSettlement(balances);
+    expect(transfers.length).toBeGreaterThan(1);
+    const pairs = transfers.map((t) => `${t.fromId}-${t.toId}`);
+    expect(new Set(pairs).size).toBe(pairs.length);
+  });
 });
