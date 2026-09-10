@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 :root {
+  /* Tell the UA both themes are supported so native controls (select popups,
+     scrollbars, checkboxes, Chrome autofill) follow the page instead of
+     staying light while everything around them is dark. */
+  color-scheme: light dark;
+
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -13,16 +18,26 @@
 }
 
 /* One accent colour for primary actions. Red stays reserved for destructive
-   actions, green/red only for the sign of a balance. */
+   actions, green/red only for the sign of a balance. The border/surface/muted
+   tokens carry enough contrast for AA (see the audit): border-strong ~3:1 for
+   form controls, muted ~7.5:1 for secondary text. */
 @theme {
   --color-accent: #4f46e5;
   --color-accent-hover: #4338ca;
+  --color-border: #d4d4d8;
+  --color-border-strong: #a1a1aa;
+  --color-surface: #f8f8f8;
+  --color-muted: #52525b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-border: #27272a;
+    --color-border-strong: #52525b;
+    --color-surface: #141414;
+    --color-muted: #a1a1aa;
   }
 }
 
@@ -41,27 +56,34 @@ body {
     outline-offset: 2px;
     border-radius: 2px;
   }
+  /* The indigo accent only clears 3:1 on the dark background; lift the ring to
+     a lighter indigo there. */
+  @media (prefers-color-scheme: dark) {
+    :focus-visible {
+      outline-color: #a5b4fc;
+    }
+  }
 }
 
 /* Shared primitives so buttons, inputs and cards stay uniform (radius, spacing,
    the single card border). Only real utilities are @apply-ed here. */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:border-gray-400 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-700 dark:hover:border-gray-500;
+    @apply inline-flex items-center justify-center rounded-lg border border-border-strong px-4 py-2 text-sm font-medium transition hover:border-gray-500 disabled:pointer-events-none disabled:opacity-50 dark:hover:border-gray-400;
   }
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-lg border border-transparent bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200;
   }
   .btn-link-danger {
-    @apply text-sm font-medium text-red-600 transition hover:underline disabled:opacity-50 dark:text-red-400;
+    @apply text-sm font-medium text-red-700 transition hover:underline disabled:opacity-50 dark:text-red-400;
   }
   .field {
-    @apply rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-transparent;
+    @apply rounded-lg border border-border-strong px-3 py-2 text-sm dark:bg-transparent;
   }
   .field[aria-invalid="true"] {
-    @apply border-red-400 dark:border-red-600;
+    @apply border-red-500 dark:border-red-500;
   }
   .card {
-    @apply rounded-lg border border-gray-200 dark:border-gray-800;
+    @apply rounded-lg border border-border bg-surface;
   }
 }
