@@ -82,7 +82,8 @@ src/
     auth-actions.ts         # register, login, logout, requestPasswordReset, resetPassword
     form-state.ts           # tipul comun { ok } | { error, field? } întors de acțiuni
     *.tsx                   # componente client: expense-form, feedback-form, confirm-button,
-                            # submit-button, quick-pay-form, copy-button, theme-toggle, …
+                            # submit-button, quick-pay-form, copy-button, theme-toggle,
+                            # back-link, site-header, …
     globals.css             # Tailwind + tokenii de temă + primitivele .btn/.field/.card
   lib/
     prisma.ts               # singleton PrismaClient peste adapterul pg
@@ -130,7 +131,12 @@ Distincția asta stă la baza întregului model de date și merită înțeleasă
 Un om poate fi trecut în grup ca nume fără să aibă cont, iar un cont poate
 avea acces fără să fie încă un nume în solduri. Legătura se face prin
 `Member.userId`, setat când cineva **revendică** un nume la acceptarea unei
-invitații.
+invitații. Owner-ul poate desface o revendicare greșită (`unlinkMember`: pune
+`userId` la loc pe `null` și șterge `GroupMember`-ul acelui cont, ca persoana
+să reintre pe link și să aleagă corect). Un slot cu istoric care nu mai e
+folosit se **arhivează** în loc să se șteargă (`Member.archivedAt`, doar la
+sold zero, nu slotul owner-ului): iese din pickere și din solduri, dar rămâne
+în toate rândurile de cheltuieli/plăți.
 
 Regula de aur: **calculele de bani lucrează cu `Member`, verificările de
 permisiuni cu `GroupMember`.**
@@ -241,9 +247,10 @@ legat semantic de input.
 `revalidatePath()`.
 
 Validarea e **dublă și independentă**: formularul ține butonul dezactivat cât
-timp procentele nu fac 100 sau sumele exacte nu se potrivesc, iar acțiunea
+timp nu s-a ales plătitor sau mod de împărțire, nu e bifat niciun participant,
+procentele nu fac 100 sau sumele exacte nu se potrivesc, iar acțiunea
 revalidează totul pe server — inclusiv că fiecare id (plătitor și
-participanți) e un membru activ al grupului. Fără acea verificare, un request
+participanți) e un membru **activ** (nearhivat) al grupului. Fără acea verificare, un request
 construit de mână ar putea introduce un membru străin, iar soldurile ar
 înceta să însumeze zero.
 
@@ -421,9 +428,11 @@ rezervat acțiunilor distructive, iar verde/roșu apar altfel doar ca semn al
 unui sold.
 
 Accesibilitate: `:focus-visible` vizibil peste tot (cu un indigo mai deschis pe
-fundal închis), dialogul de confirmare e `role="alertdialog"` cu focus pe
-butonul distructiv și închidere pe `Escape`, iar erorile și confirmările de
-formular sunt `role="alert"` / `role="status"`.
+fundal închis), dialogul de confirmare e `role="alertdialog"` cu focus prins în
+interior (Tab ciclează, `Escape` închide, focusul revine pe declanșator), iar
+erorile și confirmările de formular sunt `role="alert"` / `role="status"`. Toate
+câmpurile au `<label>` vizibil; `<select>` primește un chevron custom
+(`appearance: none`) ca să arate la fel în toate browserele.
 
 ## Testare
 

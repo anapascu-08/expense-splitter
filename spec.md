@@ -230,8 +230,9 @@ Făcut până acum:
 **Principii**
 - Mobile-first: fluxul principal (grup → adaugă cheltuială → vezi solduri)
   trebuie să fie comod pe telefon, o singură coloană.
-- Zero configurare inutilă: valorile implicite bune (toți membrii participă,
-  plătitor = ultimul selectat) rămân un click distanță.
+- Zero configurare inutilă acolo unde există o valoare implicită sigură (toți
+  membrii participă la o cheltuială nouă). Unde nu există — „Plătit de" și
+  „Împărțire" — câmpul pornește gol și cere o alegere explicită.
 - Feedback imediat la fiecare acțiune (server action) — stare de „se salvează",
   apoi confirmare sau eroare vizibilă.
 
@@ -273,3 +274,47 @@ Făcut până acum:
 - Toate inputurile cu `<label>` asociat; butoanele cu text real (nu doar icon).
 - Focus vizibil, navigare completă din tastatură, contrast AA.
 - Erorile legate de câmp prin `aria-describedby`.
+
+### Faza 7 — Accesibilitate, temă & retușuri ✅
+
+Rundă de curățenie peste UI-ul din Fazele 5–6, tot fără librării noi.
+
+- ✅ **Toggle de temă** Sistem / Deschis / Închis (`ThemeToggle` în header).
+  Alegerea se ține în `localStorage` și se aplică prin `data-theme` pe `<html>`;
+  un script inline din `layout.tsx` o rezolvă **înainte de prima pictare** (fără
+  flash). Tailwind `dark:` e re-legat de atribut prin `@custom-variant`, iar
+  `color-scheme` e îngustat per temă rezolvată, ca popup-urile native de
+  `<select>`, scrollbar-ele și autofill-ul Chrome să urmeze pagina.
+- ✅ **Contrast WCAG AA** — tokeni noi `--color-border` / `--color-border-strong`
+  / `--color-surface` / `--color-muted` (cu override pe dark) aleși pentru ~3:1
+  la conturul controalelor și ~7,5:1 la textul secundar; acțiunile („editează",
+  „șterge", „revocă") nu mai sunt `gray-400` (citit ca dezactivat), iar „șterge"
+  e roșu din start, nu doar pe hover.
+- ✅ **Pagini de eroare în română** — `not-found.tsx`, `error.tsx` (cu reîncercare)
+  și `global-error.tsx`, stilizate, în locul ecranului default Next în engleză
+  (ecranul pe care-l vedea și un ne-membru la `notFound()`).
+- ✅ **Redirect de login cu destinație** — `requireUser(next?)` construiește
+  `/login?next=<encoded>`, iar `requireGroupAccess` trece calea grupului, deci
+  un link direct partajat supraviețuiește ocolului prin login. `safeNext` /
+  `loginRedirect` extrase în `src/lib/safe-next.ts`, testate. Ecranele
+  `/login` + `/register` arată cine te-a invitat când `next` e o invitație
+  (`src/lib/invite.ts` `inviteContext`).
+- ✅ **Câmpuri fără default** — „Plătit de" și „Împărțire" pornesc pe „— alege —";
+  `readSplit` respinge modul lipsă în loc să cadă tacit pe `EQUAL`.
+- ✅ **Dativ românesc** pentru destinatarul unei plăți în feed și în decontare:
+  „i-a plătit Anei" (feminin, inflectat) vs „i-a plătit lui Bogdan" (masculin /
+  incert). `src/lib/romanian.ts` `toDative`, test-first.
+- ✅ **Arhivare membru** (`Member.archivedAt`) — alternativă la ștergere pentru un
+  membru cu istoric: iese din pickere, din lista de solduri și din decontare,
+  dar rămâne în toate rândurile de cheltuieli/plăți și în feed. `archiveMember`
+  e owner-only și permis doar la sold net exact zero; slotul owner-ului nu poate
+  fi arhivat. Secțiune „Arhivați (N)" cu „Dezarhivează".
+- ✅ **Avertisment la ștergerea unei cheltuieli** când grupul are plăți
+  înregistrate — soldurile pot să nu mai reflecte ce s-a plătit deja.
+- ✅ **Fix decontare** — rândurile din „Cum se rezolvă" sunt cheiate pe perechea
+  `fromId-toId`, nu pe index; altfel starea „achitat" a unui rând migra pe
+  transferul care aluneca în locul lui.
+- ✅ **Retușuri header & navigație** — header `sticky` cu logo SVG și fundal
+  puțin mai închis; componentă `BackLink` unică (text mai mare + icon săgeată)
+  pe toate link-urile „înapoi"; chevron custom pe `<select>`; focus trap în
+  `ConfirmButton`.
