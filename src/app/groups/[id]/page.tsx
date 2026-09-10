@@ -254,8 +254,9 @@ export default async function GroupPage({
                           </FeedbackForm>
                           {isOwner && locked && (
                             <p className="text-xs text-gray-600 dark:text-gray-300">
-                              Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
-                              reatribuie întâi acele înregistrări.
+                              Nu poate fi șters — {reasons.join(" și ")}.
+                              Ștergerea ar rescrie sumele din cheltuielile
+                              trecute; redenumirea merge oricând.
                             </p>
                           )}
                           {isOwner && !locked && (
