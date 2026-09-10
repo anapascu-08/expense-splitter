@@ -250,6 +250,32 @@ export async function deleteMember(groupId: string, memberId: string) {
   revalidatePath(`/groups/${groupId}`);
 }
 
+// Undo a claim: detach the account from a Member slot so the name is free to be
+// claimed again, and drop that account's group access so they land back on the
+// invite screen and can pick the right name (or not return). Owner-only. The
+// owner's own slot is left alone — unlinking it would lock them out of their
+// own group.
+export async function unlinkMember(groupId: string, memberId: string) {
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
+
+  const member = await prisma.member.findFirst({
+    where: { id: memberId, groupId },
+    select: { userId: true, group: { select: { ownerId: true } } },
+  });
+  if (!member?.userId || member.userId === member.group.ownerId) return;
+
+  const { userId } = member;
+  await prisma.$transaction([
+    prisma.member.updateMany({
+      where: { id: memberId, groupId },
+      data: { userId: null },
+    }),
+    prisma.groupMember.deleteMany({ where: { groupId, userId } }),
+  ]);
+  revalidatePath(`/groups/${groupId}`);
+}
+
 type ParsedExpense = {
   description: string;
   amount: number;

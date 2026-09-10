@@ -11,6 +11,7 @@ import {
   addPayment,
   deletePayment,
   deleteMember,
+  unlinkMember,
   createInvite,
   revokeInvite,
   acceptInvite,
@@ -420,6 +421,129 @@ describe("updateMember", () => {
         formData({ name: "X", groupId: group.id, memberId: m.id })
       )
     );
+  });
+});
+
+describe("unlinkMember", () => {
+  async function claimedSetup() {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const joiner = await makeUser({ name: "Joiner" });
+    await addMember(group.id, joiner.user.id); // group access
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Dana", userId: joiner.user.id },
+    });
+    return { owner, group, joiner, slot };
+  }
+
+  it("owner unlinks a claimed slot: userId cleared, slot kept, account loses access", async () => {
+    const { owner, group, joiner, slot } = await claimedSetup();
+    await signIn(owner.user.id);
+
+    await unlinkMember(group.id, slot.id);
+
+    const after = await prisma.member.findUniqueOrThrow({
+      where: { id: slot.id },
+    });
+    expect(after.userId).toBeNull();
+    expect(after.name).toBe("Dana");
+    expect(
+      await prisma.groupMember.findUnique({
+        where: {
+          groupId_userId: { groupId: group.id, userId: joiner.user.id },
+        },
+      })
+    ).toBeNull();
+  });
+
+  it("does nothing when a non-owner calls it", async () => {
+    const { group, joiner, slot } = await claimedSetup();
+    await signIn(joiner.user.id);
+
+    await unlinkMember(group.id, slot.id);
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBe(joiner.user.id);
+  });
+
+  it("is a no-op on an already-unclaimed slot", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Free" },
+    });
+    await signIn(owner.user.id);
+
+    await unlinkMember(group.id, slot.id);
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBeNull();
+  });
+
+  it("refuses to unlink the owner's own slot", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Owner", userId: owner.user.id },
+    });
+    await signIn(owner.user.id);
+
+    await unlinkMember(group.id, slot.id);
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBe(owner.user.id);
+    expect(
+      await prisma.groupMember.findUnique({
+        where: { groupId_userId: { groupId: group.id, userId: owner.user.id } },
+      })
+    ).not.toBeNull();
+  });
+
+  it("won't touch a slot that belongs to another group", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    const other = await makeGroup(owner.user.id);
+    const outsider = await makeUser();
+    const slot = await prisma.member.create({
+      data: { groupId: other.id, name: "Elsewhere", userId: outsider.user.id },
+    });
+    await signIn(owner.user.id);
+
+    await unlinkMember(group.id, slot.id);
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBe(outsider.user.id);
+  });
+
+  it("lets the ex-claimer re-accept the invite and claim again", async () => {
+    const { owner, group, joiner, slot } = await claimedSetup();
+    const invite = await prisma.groupInvite.create({
+      data: {
+        groupId: group.id,
+        createdById: owner.user.id,
+        expiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
+    await signIn(owner.user.id);
+    await unlinkMember(group.id, slot.id);
+
+    await signIn(joiner.user.id);
+    await catchRedirect(
+      acceptInvite(invite.token, formData({ claimMemberId: slot.id }))
+    );
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBe(joiner.user.id);
+    expect(
+      await prisma.member.count({
+        where: { groupId: group.id, userId: joiner.user.id },
+      })
+    ).toBe(1);
   });
 });
 

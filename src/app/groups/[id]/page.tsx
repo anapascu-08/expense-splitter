@@ -17,6 +17,7 @@ import {
   deleteMember,
   deletePayment,
   revokeInvite,
+  unlinkMember,
   updateGroup,
   updateMember,
 } from "@/app/actions";
@@ -201,8 +202,15 @@ export default async function GroupPage({
                       className="card px-4 py-3"
                     >
                       <details className="text-sm">
-                        <summary className="flex cursor-pointer select-none items-center justify-between">
-                          <span className="font-medium">{member.name}</span>
+                        <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
+                          <span className="font-medium">
+                            {member.name}
+                            {member.userId && (
+                              <span className="ml-2 text-xs font-normal text-gray-400">
+                                cont legat
+                              </span>
+                            )}
+                          </span>
                           <span className="text-xs text-gray-400">editează</span>
                         </summary>
                         <div className="mt-3 flex flex-col gap-3">
@@ -245,6 +253,25 @@ export default async function GroupPage({
                               </ConfirmButton>
                             </form>
                           )}
+                          {isOwner &&
+                            member.userId &&
+                            member.userId !== group.ownerId && (
+                              <form
+                                action={unlinkMember.bind(
+                                  null,
+                                  group.id,
+                                  member.id
+                                )}
+                              >
+                                <ConfirmButton
+                                  message={`Persoana asta nu e „${member.name}”? Contul legat pierde accesul la grup, iar numele redevine liber pentru a fi revendicat.`}
+                                  className="btn-link-danger"
+                                  confirmLabel="Anulează revendicarea"
+                                >
+                                  Anulează revendicarea contului
+                                </ConfirmButton>
+                              </form>
+                            )}
                         </div>
                       </details>
                     </li>

@@ -118,7 +118,11 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   + un slot `Member`. Dacă grupul are sloturi neasignate (`userId = null`),
   pagina de invitație lasă noul venit să revendice unul („Sunt «X»") în loc să
   fie adăugat separat; revendicarea = `updateMany` condiționat pe `userId: null`
-  (dacă între timp a fost luat, se creează un slot nou)
+  (dacă între timp a fost luat, se creează un slot nou). Nu există verificare de
+  identitate la revendicare (linkul = încrederea); dacă cineva revendică greșit,
+  owner-ul are „Anulează revendicarea contului" (`unlinkMember`) — pune la loc
+  `userId = null` și șterge `GroupMember`-ul acelui cont, deci poate reintra pe
+  link și alege corect. Slotul owner-ului nu poate fi dezlegat.
 - Fiecare utilizator vede doar grupurile în care e `GroupMember`; ne-membru care
   accesează direct URL-ul grupului primește 404 (nu scurgem existența).
   Enforce în DAL (`requireUser` / `requireGroupAccess` — `src/lib/access.ts`)
