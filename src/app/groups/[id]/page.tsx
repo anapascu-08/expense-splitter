@@ -7,6 +7,7 @@ import { CopyButton } from "@/app/copy-button";
 import { computeBalances, computeSettlement } from "@/lib/balances";
 import { baniToInput, formatMoney, convertToBase } from "@/lib/money";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { toDative } from "@/lib/romanian";
 import {
   addExpense,
   addMember,
@@ -131,7 +132,7 @@ export default async function GroupPage({
       <header className="flex flex-col gap-3">
         <Link
           href="/"
-          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+          className="text-sm font-medium text-gray-600 transition hover:text-gray-900 hover:underline dark:text-gray-300 dark:hover:text-gray-100"
         >
           ← Toate grupurile
         </Link>
@@ -145,7 +146,7 @@ export default async function GroupPage({
         </p>
         {isOwner && (
           <details className="text-sm text-gray-500 dark:text-gray-400">
-            <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200">
+            <summary className="cursor-pointer select-none font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
               redenumește / șterge grupul
             </summary>
             <div className="mt-3 flex flex-col gap-3">
@@ -448,8 +449,8 @@ export default async function GroupPage({
                     className="flex items-center justify-between gap-3 lg:flex-col lg:items-start lg:gap-2"
                   >
                     <p>
-                      <span className="font-medium">{t.fromName}</span> îi dă lui{" "}
-                      <span className="font-medium">{t.toName}</span>{" "}
+                      <span className="font-medium">{t.fromName}</span> îi dă{" "}
+                      <span className="font-medium">{toDative(t.toName)}</span>{" "}
                       {formatMoney(t.amount, base)}
                     </p>
                     <QuickPayForm

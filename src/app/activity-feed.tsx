@@ -1,5 +1,6 @@
 import { formatMoney } from "@/lib/money";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { toDative } from "@/lib/romanian";
 import {
   buildActivity,
   type ActivityExpense,
@@ -37,7 +38,7 @@ export function ActivityFeed({ expenses, payments, baseCurrency }: Props) {
             ) : (
               <span className="truncate">
                 ✅ <span className="font-medium">{item.fromName}</span> i-a
-                plătit lui <span className="font-medium">{item.toName}</span>
+                plătit <span className="font-medium">{toDative(item.toName)}</span>
               </span>
             )}
             <span className="shrink-0 text-right tabular-nums text-gray-500 dark:text-gray-400">

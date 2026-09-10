@@ -12,8 +12,13 @@ export async function SiteHeader() {
           Expense Splitter
         </Link>
         {user ? (
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gray-500 dark:text-gray-400">{user.name}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-medium text-gray-700 dark:text-gray-200">
+              {user.name}
+            </span>
+            <span aria-hidden="true" className="text-gray-300 dark:text-gray-700">
+              ·
+            </span>
             <form action={logout}>
               <button
                 type="submit"
