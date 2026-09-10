@@ -24,21 +24,47 @@ export function ConfirmButton({
   ...rest
 }: Props) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     confirmRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      // Keep focus inside the dialog while it's open.
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      // Send focus back to the button that opened the dialog.
+      triggerRef.current?.focus();
+    };
   }, [open]);
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         className={className}
         onClick={() => setOpen(true)}
@@ -53,6 +79,7 @@ export function ConfirmButton({
           onClick={() => setOpen(false)}
         >
           <div
+            ref={dialogRef}
             role="alertdialog"
             aria-modal="true"
             aria-label="Confirmare"

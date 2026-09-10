@@ -470,6 +470,11 @@ export function ExpenseForm({
           </Link>
         )}
       </div>
+      {participants.length === 0 && (
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Bifează cel puțin un participant ca să poți salva.
+        </p>
+      )}
 
       {state && "error" in state && (
         <p
