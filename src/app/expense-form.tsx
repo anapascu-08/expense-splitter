@@ -109,8 +109,9 @@ export function ExpenseForm({
     PERCENT: "%",
     SHARES: "cote",
   };
-  const [splitMode, setSplitMode] = useState<SplitMode>(
-    defaults?.splitMode ?? "EQUAL"
+  // "" = not chosen yet; there's no safe default, so the user must pick.
+  const [splitMode, setSplitMode] = useState<SplitMode | "">(
+    defaults?.splitMode ?? ""
   );
   const [checked, setChecked] = useState<Set<string>>(
     () =>
@@ -133,11 +134,11 @@ export function ExpenseForm({
     clearedFor.current = state;
     setDescription("");
     setAmount("");
-    setPaidById(members[0]?.id ?? "");
+    setPaidById("");
     setCategory("");
     setCurrency(baseCurrency);
     setRate("");
-    setSplitMode("EQUAL");
+    setSplitMode("");
     setChecked(new Set(members.map((m) => m.id)));
     setWeights({});
   }, [state, defaults, members, baseCurrency]);
@@ -155,7 +156,8 @@ export function ExpenseForm({
 
   // React Compiler memoizes this automatically — no useMemo needed.
   const allocation = (() => {
-    if (splitMode === "EQUAL" || splitMode === "SHARES") return null;
+    if (splitMode === "" || splitMode === "EQUAL" || splitMode === "SHARES")
+      return null;
     const unit = splitMode === "PERCENT" ? 10000 : amountBani;
     const allocated = participants.reduce(
       (sum, m) => sum + Math.round(parseNum(weights[m.id] ?? "") * 100),
@@ -343,9 +345,13 @@ export function ExpenseForm({
         <select
           name="splitMode"
           value={splitMode}
-          onChange={(e) => setSplitMode(e.target.value as SplitMode)}
+          onChange={(e) => setSplitMode(e.target.value as SplitMode | "")}
           className={inputClass}
+          {...invalid("splitMode")}
         >
+          <option value="" disabled>
+            — alege —
+          </option>
           {(Object.keys(MODE_LABELS) as SplitMode[]).map((mode) => (
             <option key={mode} value={mode}>
               {MODE_LABELS[mode]}
@@ -356,7 +362,9 @@ export function ExpenseForm({
 
       <fieldset className="flex flex-col gap-2 text-sm">
         <legend className="mb-1">
-          {splitMode === "EQUAL" ? "Împărțit între" : "Participanți"}
+          {splitMode === "EQUAL" || splitMode === ""
+            ? "Împărțit între"
+            : "Participanți"}
         </legend>
         {members.map((member) => {
           const isChecked = checked.has(member.id);
@@ -372,7 +380,7 @@ export function ExpenseForm({
                 />
                 {member.name}
               </label>
-              {splitMode !== "EQUAL" && isChecked && (
+              {splitMode !== "EQUAL" && splitMode !== "" && isChecked && (
                 <span className="flex items-center gap-1">
                   <input
                     type="text"
@@ -457,7 +465,7 @@ export function ExpenseForm({
         <button
           type="submit"
           className="btn-primary"
-          disabled={mismatch || participants.length === 0}
+          disabled={splitMode === "" || mismatch || participants.length === 0}
         >
           {submitLabel}
         </button>
@@ -470,9 +478,11 @@ export function ExpenseForm({
           </Link>
         )}
       </div>
-      {participants.length === 0 && (
+      {(splitMode === "" || participants.length === 0) && (
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          Bifează cel puțin un participant ca să poți salva.
+          {splitMode === ""
+            ? "Alege cum se împarte cheltuiala."
+            : "Bifează cel puțin un participant ca să poți salva."}
         </p>
       )}
 

@@ -173,6 +173,32 @@ describe("form-level validation feedback", () => {
     expect(await prisma.payment.count()).toBe(0);
   });
 
+  it("addExpense requires a split mode to be chosen", async () => {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const a = await prisma.member.create({
+      data: { groupId: group.id, name: "A" },
+    });
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "x",
+        amount: "10",
+        paidById: a.id,
+        participantIds: [a.id],
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({
+      error: "Alege cum se împarte cheltuiala.",
+      field: "splitMode",
+    });
+    expect(await prisma.expense.count()).toBe(0);
+  });
+
   it("addExpense dedupes repeated participantIds instead of crashing on the PK", async () => {
     const owner = await makeUser();
     const group = await makeGroup(owner.user.id);

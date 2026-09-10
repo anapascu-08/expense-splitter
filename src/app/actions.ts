@@ -33,10 +33,13 @@ function readSplit(
   splitMode: string;
   participants: ParticipantWeight[];
 } {
-  const rawMode = String(formData.get("splitMode") ?? "EQUAL");
-  const splitMode = ["EQUAL", "EXACT", "PERCENT", "SHARES"].includes(rawMode)
-    ? rawMode
-    : "EQUAL";
+  const rawMode = String(formData.get("splitMode") ?? "");
+  if (!["EQUAL", "EXACT", "PERCENT", "SHARES"].includes(rawMode))
+    return {
+      error: "Alege cum se împarte cheltuiala.",
+      field: "splitMode",
+    };
+  const splitMode = rawMode;
   const participantIds = [
     ...new Set(formData.getAll("participantIds").map(String)),
   ];
