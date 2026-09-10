@@ -122,6 +122,11 @@ model Member {
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  // Set when the member is retired from the group: their history stays, but
+  // they drop out of the expense/payment pickers and the balances list. Only
+  // allowed at a zero net balance (see archiveMember).
+  archivedAt DateTime?
+
   paidExpenses     Expense[]            @relation("PaidBy")
   shares           ExpenseParticipant[]
   paymentsSent     Payment[]            @relation("PaymentFrom")

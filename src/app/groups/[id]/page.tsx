@@ -19,6 +19,8 @@ import {
   deletePayment,
   revokeInvite,
   unlinkMember,
+  archiveMember,
+  unarchiveMember,
   updateGroup,
   updateMember,
 } from "@/app/actions";
@@ -75,6 +77,12 @@ export default async function GroupPage({
 
   if (!group) notFound();
 
+  // Archived members keep their history (expense rows, payment rows, the feed
+  // still name them) but drop out of every picker, the balances list and the
+  // settlement.
+  const activeMembers = group.members.filter((m) => !m.archivedAt);
+  const archivedMembers = group.members.filter((m) => m.archivedAt);
+
   // Balances, settlement and the summary all work in the group's base currency;
   // each expense is converted from its own currency using the rate stored on it.
   const base = group.baseCurrency;
@@ -82,8 +90,9 @@ export default async function GroupPage({
     ...e,
     amount: convertToBase(e.amount, e.rateMicros),
   }));
-  const balances = computeBalances(group.members, expensesInBase, group.payments);
+  const balances = computeBalances(activeMembers, expensesInBase, group.payments);
   const settlement = computeSettlement(balances);
+  const netByMember = new Map(balances.map((b) => [b.memberId, b.net]));
 
   // The in-app "notification" feed: no email/push, just the most recent
   // expenses and payments merged into one chronological list (Faza 5).
@@ -184,13 +193,13 @@ export default async function GroupPage({
         <div className="flex flex-col gap-8 lg:col-start-1 lg:row-start-1">
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-medium">Membri</h2>
-            {group.members.length === 0 ? (
+            {activeMembers.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Niciun membru încă. Adaugă mai jos.
               </p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {group.members.map((member) => {
+                {activeMembers.map((member) => {
                   const paid = paidCount.get(member.id) ?? 0;
                   const parts = partCount.get(member.id) ?? 0;
                   const pays = payCount.get(member.id) ?? 0;
@@ -252,13 +261,40 @@ export default async function GroupPage({
                             />
                             <SubmitButton>Salvează</SubmitButton>
                           </FeedbackForm>
-                          {isOwner && locked && (
-                            <p className="text-xs text-gray-600 dark:text-gray-300">
-                              Nu poate fi șters — {reasons.join(" și ")}.
-                              Ștergerea ar rescrie sumele din cheltuielile
-                              trecute; redenumirea merge oricând.
-                            </p>
-                          )}
+                          {isOwner &&
+                            locked &&
+                            ((netByMember.get(member.id) ?? 0) === 0 ? (
+                              <div className="flex flex-col gap-2">
+                                <p className="text-xs text-gray-600 dark:text-gray-300">
+                                  {reasons.join(" și ")} — nu poate fi șters
+                                  (ștergerea ar rescrie cheltuielile trecute).
+                                  Soldul e zero, deci poate fi arhivat: iese din
+                                  liste, dar rămâne în istoric.
+                                </p>
+                                <form
+                                  action={archiveMember.bind(
+                                    null,
+                                    group.id,
+                                    member.id
+                                  )}
+                                >
+                                  <ConfirmButton
+                                    message={`Arhivezi „${member.name}”? Nu va mai apărea la cheltuieli, plăți sau solduri, dar rămâne în istoric. Poți dezarhiva oricând.`}
+                                    className="btn-link-danger"
+                                    confirmLabel="Arhivează"
+                                  >
+                                    Arhivează membrul
+                                  </ConfirmButton>
+                                </form>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-600 dark:text-gray-300">
+                                {reasons.join(" și ")}. Nu poate fi șters
+                                (ștergerea ar rescrie cheltuielile trecute) și
+                                nici arhivat cât timp are sold nedecontat —
+                                decontează-l întâi.
+                              </p>
+                            ))}
                           {isOwner && !locked && (
                             <form action={deleteMember.bind(null, group.id, member.id)}>
                               <ConfirmButton
@@ -309,17 +345,51 @@ export default async function GroupPage({
               </label>
               <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
             </FeedbackForm>
+
+            {archivedMembers.length > 0 && (
+              <details className="text-sm text-gray-600 dark:text-gray-300">
+                <summary className="cursor-pointer select-none font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
+                  Arhivați ({archivedMembers.length})
+                </summary>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {archivedMembers.map((member) => (
+                    <li
+                      key={member.id}
+                      className="card flex items-center justify-between px-4 py-2"
+                    >
+                      <span>{member.name}</span>
+                      {isOwner && (
+                        <form
+                          action={unarchiveMember.bind(
+                            null,
+                            group.id,
+                            member.id
+                          )}
+                        >
+                          <button
+                            type="submit"
+                            className="text-sm font-medium text-gray-700 transition hover:underline dark:text-gray-200"
+                          >
+                            Dezarhivează
+                          </button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </section>
 
           <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
             <h2 className="text-lg font-medium">Cheltuieli</h2>
-            {group.members.length === 0 ? (
+            {activeMembers.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Adaugă întâi un membru ca să poți înregistra cheltuieli.
               </p>
             ) : (
               <ExpenseForm
-                members={group.members}
+                members={activeMembers}
                 action={addExpense}
                 groupId={group.id}
                 submitLabel="Adaugă cheltuială"
@@ -327,7 +397,7 @@ export default async function GroupPage({
               />
             )}
             {group.expenses.length === 0 ? (
-              group.members.length > 0 && (
+              activeMembers.length > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Nicio cheltuială încă. Adaugă una ca să vezi soldurile.
                 </p>
@@ -417,7 +487,7 @@ export default async function GroupPage({
         <aside className="lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1 lg:row-span-2">
           <section className="card flex flex-col gap-3 p-4">
             <h2 className="text-lg font-medium">Solduri</h2>
-            {group.members.length === 0 ? (
+            {activeMembers.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Adaugă membri pentru a vedea soldurile.
               </p>
@@ -525,7 +595,7 @@ export default async function GroupPage({
               </ul>
             )}
 
-            {group.members.length >= 2 && (
+            {activeMembers.length >= 2 && (
               <FeedbackForm
                 action={addPayment}
                 rowClassName="flex flex-col gap-3 sm:flex-row sm:items-end"
@@ -542,7 +612,7 @@ export default async function GroupPage({
                     <option value="" disabled>
                       —
                     </option>
-                    {group.members.map((member) => (
+                    {activeMembers.map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.name}
                       </option>
@@ -560,7 +630,7 @@ export default async function GroupPage({
                     <option value="" disabled>
                       —
                     </option>
-                    {group.members.map((member) => (
+                    {activeMembers.map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.name}
                       </option>
@@ -584,7 +654,7 @@ export default async function GroupPage({
 
           <GroupSummary
             expenses={expensesInBase}
-            members={group.members}
+            members={activeMembers}
             currency={base}
           />
 

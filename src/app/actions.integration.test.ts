@@ -12,6 +12,8 @@ import {
   deletePayment,
   deleteMember,
   unlinkMember,
+  archiveMember,
+  unarchiveMember,
   createInvite,
   revokeInvite,
   acceptInvite,
@@ -570,6 +572,115 @@ describe("unlinkMember", () => {
         where: { groupId: group.id, userId: joiner.user.id },
       })
     ).toBe(1);
+  });
+});
+
+describe("archiveMember / unarchiveMember", () => {
+  async function owedPair() {
+    const owner = await makeUser();
+    const group = await makeGroup(owner.user.id);
+    await signIn(owner.user.id);
+    const ana = await prisma.member.create({
+      data: { groupId: group.id, name: "Ana" },
+    });
+    const bob = await prisma.member.create({
+      data: { groupId: group.id, name: "Bob" },
+    });
+    // Ana pays 100, split equally -> Bob owes Ana 50.
+    await addExpense(
+      undefined,
+      formData({
+        description: "Cazare",
+        amount: "100",
+        paidById: ana.id,
+        splitMode: "EQUAL",
+        participantIds: [ana.id, bob.id],
+        groupId: group.id,
+      })
+    );
+    return { owner, group, ana, bob };
+  }
+
+  const archivedAt = async (id: string) =>
+    (await prisma.member.findUniqueOrThrow({ where: { id } })).archivedAt;
+
+  it("archives a member once their balance is settled", async () => {
+    const { group, ana, bob } = await owedPair();
+    await addPayment(
+      undefined,
+      formData({ fromId: bob.id, toId: ana.id, amount: "50", groupId: group.id })
+    );
+
+    await archiveMember(group.id, bob.id);
+
+    expect(await archivedAt(bob.id)).not.toBeNull();
+  });
+
+  it("refuses to archive a member with a non-zero balance", async () => {
+    const { group, bob } = await owedPair();
+
+    await archiveMember(group.id, bob.id);
+
+    expect(await archivedAt(bob.id)).toBeNull();
+  });
+
+  it("does nothing when a non-owner calls archive", async () => {
+    const { group, ana, bob } = await owedPair();
+    await addPayment(
+      undefined,
+      formData({ fromId: bob.id, toId: ana.id, amount: "50", groupId: group.id })
+    );
+    const outsider = await makeUser();
+    await addMember(group.id, outsider.user.id);
+    await signIn(outsider.user.id);
+
+    await archiveMember(group.id, bob.id);
+
+    expect(await archivedAt(bob.id)).toBeNull();
+  });
+
+  it("unarchives a member (owner only)", async () => {
+    const { owner, group, bob } = await owedPair();
+    await prisma.member.update({
+      where: { id: bob.id },
+      data: { archivedAt: new Date() },
+    });
+
+    const outsider = await makeUser();
+    await addMember(group.id, outsider.user.id);
+    await signIn(outsider.user.id);
+    await unarchiveMember(group.id, bob.id);
+    expect(await archivedAt(bob.id)).not.toBeNull();
+
+    await signIn(owner.user.id);
+    await unarchiveMember(group.id, bob.id);
+    expect(await archivedAt(bob.id)).toBeNull();
+  });
+
+  it("keeps a new expense from naming an archived member", async () => {
+    const { group, ana, bob } = await owedPair();
+    await addPayment(
+      undefined,
+      formData({ fromId: bob.id, toId: ana.id, amount: "50", groupId: group.id })
+    );
+    await archiveMember(group.id, bob.id);
+
+    const state = await addExpense(
+      undefined,
+      formData({
+        description: "Cina",
+        amount: "20",
+        paidById: ana.id,
+        splitMode: "EQUAL",
+        participantIds: [ana.id, bob.id],
+        groupId: group.id,
+      })
+    );
+
+    expect(state).toEqual({
+      error: "Unii membri nu mai fac parte din grup. Reîncarcă pagina.",
+    });
+    expect(await prisma.expense.count({ where: { groupId: group.id } })).toBe(1);
   });
 });
 

@@ -9,9 +9,11 @@ import {
   toBasisPoints,
   toShares,
   toRateMicros,
+  convertToBase,
   RATE_SCALE,
   FULL_PERCENT_BP,
 } from "@/lib/money";
+import { computeBalances } from "@/lib/balances";
 import { isExpenseCategory } from "@/lib/categories";
 import { isCurrency, DEFAULT_CURRENCY } from "@/lib/currencies";
 import type { FormState } from "@/app/form-state";
@@ -279,6 +281,60 @@ export async function unlinkMember(groupId: string, memberId: string) {
   revalidatePath(`/groups/${groupId}`);
 }
 
+// Retire a settled member: keeps every past expense/payment that names them,
+// but drops them from the pickers and the balances list. Owner-only, and only
+// when their net balance is exactly zero — archiving someone still owed money
+// (or owing) would hide a live debt.
+export async function archiveMember(groupId: string, memberId: string) {
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      members: { select: { id: true, name: true } },
+      expenses: {
+        select: {
+          amount: true,
+          rateMicros: true,
+          paidById: true,
+          participants: { select: { memberId: true, weight: true } },
+        },
+      },
+      payments: { select: { amount: true, fromId: true, toId: true } },
+    },
+  });
+  if (!group || !group.members.some((m) => m.id === memberId)) return;
+
+  const expensesInBase = group.expenses.map((e) => ({
+    ...e,
+    amount: convertToBase(e.amount, e.rateMicros),
+  }));
+  const balances = computeBalances(
+    group.members,
+    expensesInBase,
+    group.payments
+  );
+  const net = balances.find((b) => b.memberId === memberId)?.net ?? 0;
+  if (net !== 0) return;
+
+  await prisma.member.updateMany({
+    where: { id: memberId, groupId },
+    data: { archivedAt: new Date() },
+  });
+  revalidatePath(`/groups/${groupId}`);
+}
+
+export async function unarchiveMember(groupId: string, memberId: string) {
+  const { role } = await requireGroupAccess(groupId);
+  if (role !== "owner") return;
+  await prisma.member.updateMany({
+    where: { id: memberId, groupId },
+    data: { archivedAt: null },
+  });
+  revalidatePath(`/groups/${groupId}`);
+}
+
 type ParsedExpense = {
   description: string;
   amount: number;
@@ -323,17 +379,18 @@ function canMutate(
   return role === "owner" || (createdById !== null && createdById === userId);
 }
 
-// Every id in an expense (payer + participants) must still belong to the
-// group. Guards against a member deleted while the form was open (would be an
-// unhandled FK error) and against a hand-built request linking a foreign
-// member (computeBalances ignores it, so balances would stop summing to zero).
+// Every id in an expense (payer + participants) must be an active member of the
+// group. Guards against a member deleted/archived while the form was open (would
+// be an unhandled FK error, or a new entry pinned to a retired member) and
+// against a hand-built request linking a foreign member (computeBalances ignores
+// it, so balances would stop summing to zero).
 async function membersBelong(
   groupId: string,
   ids: string[]
 ): Promise<boolean> {
   const unique = [...new Set(ids)];
   const found = await prisma.member.count({
-    where: { groupId, id: { in: unique } },
+    where: { groupId, id: { in: unique }, archivedAt: null },
   });
   return found === unique.length;
 }
@@ -468,9 +525,9 @@ export async function addPayment(
   if (amount <= 0)
     return { error: "Suma trebuie să fie mai mare ca zero.", field: "amount" };
 
-  // Both parties must belong to this group.
+  // Both parties must be active members of this group.
   const membersInGroup = await prisma.member.count({
-    where: { groupId, id: { in: [fromId, toId] } },
+    where: { groupId, id: { in: [fromId, toId] }, archivedAt: null },
   });
   if (membersInGroup !== 2)
     return {
