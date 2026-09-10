@@ -505,7 +505,7 @@ export async function revokeInvite(groupId: string, token: string) {
   revalidatePath(`/groups/${groupId}`);
 }
 
-export async function acceptInvite(token: string) {
+export async function acceptInvite(token: string, formData?: FormData) {
   const user = await requireUser();
 
   const invite = await prisma.groupInvite.findUnique({ where: { token } });
@@ -523,26 +523,42 @@ export async function acceptInvite(token: string) {
     update: {},
   });
 
-  // Also give the new arrival a Member slot so they show up in the balances
-  // straight away (there's no name-claiming flow yet — see spec). Skip if they
-  // already have one; the @@unique([groupId, userId]) covers a concurrent race.
+  // Give the new arrival a Member slot so they show up in the balances straight
+  // away. They either claim an unclaimed slot someone already typed in for them
+  // (`claimMemberId` names it) or get a fresh one. Skip if they already have a
+  // slot here; the @@unique([groupId, userId]) covers a concurrent race.
   const hasSlot = await prisma.member.findFirst({
     where: { groupId: invite.groupId, userId: user.id },
     select: { id: true },
   });
   if (!hasSlot) {
-    try {
-      await prisma.member.create({
-        data: { groupId: invite.groupId, name: user.name, userId: user.id },
-      });
-    } catch (err) {
-      if (
-        !(
-          err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === "P2002"
-        )
-      ) {
-        throw err;
+    const claimId = formData?.get("claimMemberId");
+    // Only claim a still-unclaimed slot in this group; if it was taken between
+    // the invite page rendering and this submit, fall through to a fresh slot.
+    const claimed =
+      typeof claimId === "string" && claimId && claimId !== "new"
+        ? (
+            await prisma.member.updateMany({
+              where: { id: claimId, groupId: invite.groupId, userId: null },
+              data: { userId: user.id },
+            })
+          ).count === 1
+        : false;
+
+    if (!claimed) {
+      try {
+        await prisma.member.create({
+          data: { groupId: invite.groupId, name: user.name, userId: user.id },
+        });
+      } catch (err) {
+        if (
+          !(
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === "P2002"
+          )
+        ) {
+          throw err;
+        }
       }
     }
   }

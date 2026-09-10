@@ -707,6 +707,97 @@ describe("acceptInvite", () => {
     ).toBe(1);
   });
 
+  it("claims an existing unclaimed Member slot when asked", async () => {
+    const { group, invite } = await makeInvite();
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Ana" },
+    });
+    const joiner = await makeUser();
+    await signIn(joiner.user.id);
+
+    await catchRedirect(
+      acceptInvite(invite.token, formData({ claimMemberId: slot.id }))
+    );
+
+    const claimed = await prisma.member.findUniqueOrThrow({
+      where: { id: slot.id },
+    });
+    expect(claimed.userId).toBe(joiner.user.id);
+    expect(claimed.name).toBe("Ana");
+    // no extra slot was created
+    expect(await prisma.member.count({ where: { groupId: group.id } })).toBe(1);
+  });
+
+  it("creates a fresh slot when the joiner picks 'new' despite open slots", async () => {
+    const { group, invite } = await makeInvite();
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Ana" },
+    });
+    const joiner = await makeUser();
+    await signIn(joiner.user.id);
+
+    await catchRedirect(
+      acceptInvite(invite.token, formData({ claimMemberId: "new" }))
+    );
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBeNull();
+    const own = await prisma.member.findMany({
+      where: { groupId: group.id, userId: joiner.user.id },
+    });
+    expect(own).toHaveLength(1);
+    expect(own[0].name).toBe(joiner.user.name);
+  });
+
+  it("falls back to a fresh slot when the chosen slot is already claimed", async () => {
+    const { group, invite } = await makeInvite();
+    const other = await makeUser();
+    const slot = await prisma.member.create({
+      data: { groupId: group.id, name: "Ana", userId: other.user.id },
+    });
+    const joiner = await makeUser();
+    await signIn(joiner.user.id);
+
+    await catchRedirect(
+      acceptInvite(invite.token, formData({ claimMemberId: slot.id }))
+    );
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: slot.id } })).userId
+    ).toBe(other.user.id);
+    const own = await prisma.member.findMany({
+      where: { groupId: group.id, userId: joiner.user.id },
+    });
+    expect(own).toHaveLength(1);
+    expect(own[0].id).not.toBe(slot.id);
+  });
+
+  it("won't claim a slot that belongs to another group", async () => {
+    const { group, invite } = await makeInvite();
+    const otherOwner = await makeUser();
+    const otherGroup = await makeGroup(otherOwner.user.id);
+    const foreignSlot = await prisma.member.create({
+      data: { groupId: otherGroup.id, name: "Ana" },
+    });
+    const joiner = await makeUser();
+    await signIn(joiner.user.id);
+
+    await catchRedirect(
+      acceptInvite(invite.token, formData({ claimMemberId: foreignSlot.id }))
+    );
+
+    expect(
+      (await prisma.member.findUniqueOrThrow({ where: { id: foreignSlot.id } }))
+        .userId
+    ).toBeNull();
+    expect(
+      await prisma.member.count({
+        where: { groupId: group.id, userId: joiner.user.id },
+      })
+    ).toBe(1);
+  });
+
   it("does nothing for an expired invite", async () => {
     const { group, invite } = await makeInvite({
       expiresAt: new Date(Date.now() - 1000),

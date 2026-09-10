@@ -47,6 +47,14 @@ export default async function InvitePage({
     redirect(`/groups/${invite.group.id}`);
   }
 
+  // Names already in the group that nobody has an account for yet — the joiner
+  // can claim one instead of being added as a separate name.
+  const unclaimed = await prisma.member.findMany({
+    where: { groupId: invite.group.id, userId: null },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
       <h1 className="text-2xl font-semibold">Ai o invitație</h1>
@@ -55,10 +63,41 @@ export default async function InvitePage({
         în grupul{" "}
         <span className="font-medium">„{invite.group.name}”</span>.
       </p>
-      <form action={acceptInvite.bind(null, token)}>
+      <form action={acceptInvite.bind(null, token)} className="flex flex-col gap-4">
+        {unclaimed.length > 0 && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-medium">
+              Ești deja pe listă?
+            </legend>
+            {unclaimed.map((member) => (
+              <label
+                key={member.id}
+                className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
+              >
+                <input
+                  type="radio"
+                  name="claimMemberId"
+                  value={member.id}
+                  className="accent-gray-900 dark:accent-white"
+                />
+                Sunt „{member.name}”
+              </label>
+            ))}
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+              <input
+                type="radio"
+                name="claimMemberId"
+                value="new"
+                defaultChecked
+                className="accent-gray-900 dark:accent-white"
+              />
+              Adaugă-mă separat
+            </label>
+          </fieldset>
+        )}
         <button
           type="submit"
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+          className="self-start rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
         >
           Intră în grup
         </button>

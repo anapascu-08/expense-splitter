@@ -112,10 +112,13 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   sesiuni opace în tabelul `Session` (cookie httpOnly cu token random, în DB
   doar hash-ul SHA-256 → nu e nevoie de secret)
 - `Member` rămâne nume liber; accesul la grup e separat prin `GroupMember`
-  (`role`: `owner` | `member`). `Member.userId` e pregătit pentru „revendicare"
-  dar claiming-ul efectiv nu e încă implementat
+  (`role`: `owner` | `member`). `Member.userId` leagă slotul de un cont real
 - Linkuri de invitație (`GroupInvite`, `/invite/[token]`) — refolosibile, expiră
   după 7 zile, pot fi revocate; accept = `upsert` `GroupMember` cu rol `member`
+  + un slot `Member`. Dacă grupul are sloturi neasignate (`userId = null`),
+  pagina de invitație lasă noul venit să revendice unul („Sunt «X»") în loc să
+  fie adăugat separat; revendicarea = `updateMany` condiționat pe `userId: null`
+  (dacă între timp a fost luat, se creează un slot nou)
 - Fiecare utilizator vede doar grupurile în care e `GroupMember`; ne-membru care
   accesează direct URL-ul grupului primește 404 (nu scurgem existența).
   Enforce în DAL (`requireUser` / `requireGroupAccess` — `src/lib/access.ts`)
@@ -140,8 +143,7 @@ generăm o listă minimă de transferuri care echilibrează soldurile
   creează, dar emailul eșuează silențios (eroare logată, nu scursă către
   apelant). Link „Ai uitat parola?" pe ecranul de login.
 
-Rămas pe viitor: verificare email, OAuth, claiming efectiv al unui slot
-`Member` la accept invitație.
+Rămas pe viitor: verificare email, OAuth.
 
 ### Faza 5 — Polish & extra ✅
 - ✅ Multiple valute — fiecare grup are o valută de bază (`Group.baseCurrency`,
