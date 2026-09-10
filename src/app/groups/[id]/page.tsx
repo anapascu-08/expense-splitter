@@ -55,6 +55,7 @@ export default async function GroupPage({
   const group = await prisma.group.findUnique({
     where: { id },
     include: {
+      owner: { select: { name: true } },
       members: { orderBy: { name: "asc" } },
       expenses: {
         orderBy: { createdAt: "desc" },
@@ -135,6 +136,13 @@ export default async function GroupPage({
           ← Toate grupurile
         </Link>
         <h1 className="text-2xl font-semibold">{group.name}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Administrat de{" "}
+          <span className="font-medium text-gray-700 dark:text-gray-200">
+            {group.owner.name}
+            {isOwner && " (tu)"}
+          </span>
+        </p>
         {isOwner && (
           <details className="text-sm text-gray-500 dark:text-gray-400">
             <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200">
@@ -205,10 +213,16 @@ export default async function GroupPage({
                         <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
                           <span className="font-medium">
                             {member.name}
-                            {member.userId && (
+                            {member.userId === group.ownerId ? (
                               <span className="ml-2 text-xs font-normal text-gray-400">
-                                cont legat
+                                owner
                               </span>
+                            ) : (
+                              member.userId && (
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                  cont legat
+                                </span>
+                              )
                             )}
                           </span>
                           <span className="text-xs text-gray-400">editează</span>
