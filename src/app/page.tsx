@@ -51,20 +51,25 @@ export default async function HomePage() {
 
       <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
         <h2 className="text-lg font-medium">Creează un grup nou</h2>
-        <FeedbackForm action={createGroup} rowClassName="flex flex-wrap gap-2">
-          <input
-            type="text"
-            name="name"
-            placeholder="ex: Vacanța la mare"
-            required
-            className="flex-1 field"
-          />
-          <label className="flex items-center gap-2 text-sm">
-            <span className="sr-only">Valuta de bază</span>
+        <FeedbackForm
+          action={createGroup}
+          rowClassName="flex flex-wrap items-end gap-2"
+        >
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            Nume grup
+            <input
+              type="text"
+              name="name"
+              placeholder="ex: Vacanța la mare"
+              required
+              className="field"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Valuta de bază
             <select
               name="baseCurrency"
               defaultValue={DEFAULT_CURRENCY}
-              aria-label="Valuta de bază"
               className="field"
             >
               {CURRENCY_CODES.map((code) => (

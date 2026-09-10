@@ -94,9 +94,8 @@ export function ExpenseForm({
 
   const [description, setDescription] = useState(defaults?.description ?? "");
   const [amount, setAmount] = useState(defaults?.amount ?? "");
-  const [paidById, setPaidById] = useState(
-    defaults?.paidById ?? members[0]?.id ?? ""
-  );
+  // No default payer — there's no safe guess, so make it an explicit choice.
+  const [paidById, setPaidById] = useState(defaults?.paidById ?? "");
   const [category, setCategory] = useState(defaults?.category ?? "");
   const [currency, setCurrency] = useState(
     defaults?.currency || baseCurrency
@@ -204,30 +203,36 @@ export function ExpenseForm({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {groupId && <input type="hidden" name="groupId" value={groupId} />}
-      <input
-        type="text"
-        name="description"
-        placeholder="Descriere (ex: cină)"
-        required
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className={inputClass}
-        {...invalid("description")}
-      />
-      <div className="flex gap-2">
+      <label className="flex flex-col gap-1 text-sm">
+        Descriere
         <input
           type="text"
-          inputMode="decimal"
-          name="amount"
-          placeholder={`Sumă (${curSym})`}
+          name="description"
+          placeholder="ex: cină"
           required
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={`${inputClass} flex-1`}
-          {...invalid("amount")}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className={inputClass}
+          {...invalid("description")}
         />
-        <label className="flex flex-col text-sm">
-          <span className="sr-only">Valută</span>
+      </label>
+      <div className="flex items-end gap-2">
+        <label className="flex flex-1 flex-col gap-1 text-sm">
+          Sumă ({curSym})
+          <input
+            type="text"
+            inputMode="decimal"
+            name="amount"
+            placeholder="0,00"
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={inputClass}
+            {...invalid("amount")}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Valută
           <select
             name="currency"
             value={currency}
@@ -305,6 +310,9 @@ export function ExpenseForm({
           className={inputClass}
           {...invalid("paidById")}
         >
+          <option value="" disabled>
+            — alege —
+          </option>
           {members.map((member) => (
             <option key={member.id} value={member.id}>
               {member.name}

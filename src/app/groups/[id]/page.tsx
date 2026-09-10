@@ -294,15 +294,18 @@ export default async function GroupPage({
                 })}
               </ul>
             )}
-            <FeedbackForm action={addMember} rowClassName="flex gap-2">
+            <FeedbackForm action={addMember} rowClassName="flex items-end gap-2">
               <input type="hidden" name="groupId" value={group.id} />
-              <input
-                type="text"
-                name="name"
-                placeholder="Nume membru"
-                required
-                className="flex-1 field"
-              />
+              <label className="flex flex-1 flex-col gap-1 text-sm">
+                Nume
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="ex: Maria"
+                  required
+                  className="field"
+                />
+              </label>
               <SubmitButton pendingLabel="Se adaugă…">Adaugă membru</SubmitButton>
             </FeedbackForm>
           </section>
