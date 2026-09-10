@@ -48,7 +48,7 @@ export default async function EditExpensePage({
       <header>
         <Link
           href={`/groups/${id}`}
-          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+          className="text-sm text-gray-600 hover:underline dark:text-gray-300"
         >
           ← înapoi la {expense.group.name}
         </Link>

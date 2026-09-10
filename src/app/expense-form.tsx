@@ -248,7 +248,7 @@ export function ExpenseForm({
         <p
           className={
             amountBani > 0
-              ? "-mt-1 text-xs text-gray-500 dark:text-gray-400"
+              ? "-mt-1 text-xs text-gray-600 dark:text-gray-300"
               : "-mt-1 text-xs text-red-600 dark:text-red-400"
           }
         >
@@ -280,7 +280,7 @@ export function ExpenseForm({
             className={
               rateMissing
                 ? "text-xs text-red-600 dark:text-red-400"
-                : "text-xs text-gray-500 dark:text-gray-400"
+                : "text-xs text-gray-600 dark:text-gray-300"
             }
           >
             {rateMissing
@@ -380,7 +380,7 @@ export function ExpenseForm({
                     className={`${inputClass} w-24 text-right`}
                     placeholder={splitMode === "SHARES" ? "1" : "0"}
                   />
-                  <span className="text-gray-500 dark:text-gray-400">
+                  <span className="text-gray-600 dark:text-gray-300">
                     {WEIGHT_SUFFIX[splitMode]}
                   </span>
                 </span>
@@ -391,7 +391,7 @@ export function ExpenseForm({
       </fieldset>
 
       {splitMode === "EQUAL" && amountBani > 0 && participants.length > 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           {formatBani(
             splitAmount(
               amountBani,
@@ -408,7 +408,7 @@ export function ExpenseForm({
           className={
             mismatch
               ? "text-sm text-red-600 dark:text-red-400"
-              : "text-sm text-green-600 dark:text-green-400"
+              : "text-sm text-green-700 dark:text-green-400"
           }
         >
           {splitMode === "PERCENT"
@@ -429,7 +429,7 @@ export function ExpenseForm({
       )}
 
       {splitMode === "SHARES" && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           {sharesAllValid
             ? `${sharesTotal} ${sharesTotal === 1 ? "cotă" : "cote"} în total`
             : "Pune cel puțin o cotă (număr întreg) pentru fiecare participant."}
@@ -456,7 +456,7 @@ export function ExpenseForm({
         {cancelHref && (
           <Link
             href={cancelHref}
-            className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+            className="text-sm text-gray-600 hover:underline dark:text-gray-300"
           >
             Anulează
           </Link>
@@ -473,7 +473,7 @@ export function ExpenseForm({
         </p>
       )}
       {showOk && state && "ok" in state && (
-        <p role="status" className="text-sm text-green-600 dark:text-green-400">
+        <p role="status" className="text-sm text-green-700 dark:text-green-400">
           {state.ok}
         </p>
       )}

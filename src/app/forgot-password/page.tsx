@@ -12,7 +12,7 @@ export default async function ForgotPasswordPage() {
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
       <header>
         <h1 className="text-2xl font-semibold">Resetează parola</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           Introdu emailul contului — dacă există, primești un link de
           resetare valabil o oră.
         </p>
@@ -38,7 +38,7 @@ export default async function ForgotPasswordPage() {
       </FeedbackForm>
       <Link
         href="/login"
-        className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+        className="text-sm text-gray-600 hover:underline dark:text-gray-300"
       >
         ← Înapoi la autentificare
       </Link>

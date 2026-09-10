@@ -18,7 +18,7 @@ export default async function HomePage() {
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
       <header>
         <h1 className="text-2xl font-semibold">Expense Splitter</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           Împarte cheltuielile cu prietenii, fără bătăi de cap.
         </p>
       </header>
@@ -26,7 +26,7 @@ export default async function HomePage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Grupurile tale</h2>
         {groups.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Nu ai niciun grup încă. Creează unul mai jos.
           </p>
         ) : (
@@ -38,7 +38,7 @@ export default async function HomePage() {
                   className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 transition hover:border-gray-400 dark:border-gray-800 dark:hover:border-gray-600"
                 >
                   <span className="font-medium">{group.name}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
                     {group.members.length}{" "}
                     {group.members.length === 1 ? "membru" : "membri"}
                   </span>
@@ -78,7 +78,7 @@ export default async function HomePage() {
             Creează
           </SubmitButton>
         </FeedbackForm>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           Valuta de bază nu se mai poate schimba după creare. Cheltuielile pot fi
           în alte valute, cu un curs introdus manual.
         </p>

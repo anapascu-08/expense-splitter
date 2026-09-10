@@ -41,7 +41,7 @@ export function ActivityFeed({ expenses, payments, baseCurrency }: Props) {
                 plătit <span className="font-medium">{toDative(item.toName)}</span>
               </span>
             )}
-            <span className="shrink-0 text-right tabular-nums text-gray-500 dark:text-gray-400">
+            <span className="shrink-0 text-right tabular-nums text-gray-600 dark:text-gray-300">
               {formatMoney(
                 item.amount,
                 item.type === "expense" ? item.currency : baseCurrency

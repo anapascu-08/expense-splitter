@@ -100,7 +100,7 @@ export function FeedbackForm({
       {showOk && state && "ok" in state && (
         <p
           role="status"
-          className="text-sm text-green-600 transition-opacity dark:text-green-400"
+          className="text-sm text-green-700 transition-opacity dark:text-green-400"
         >
           {state.ok}
         </p>

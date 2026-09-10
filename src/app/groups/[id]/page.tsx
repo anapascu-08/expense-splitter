@@ -137,7 +137,7 @@ export default async function GroupPage({
           ← Toate grupurile
         </Link>
         <h1 className="text-2xl font-semibold">{group.name}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           Administrat de{" "}
           <span className="font-medium text-gray-700 dark:text-gray-200">
             {group.owner.name}
@@ -145,7 +145,7 @@ export default async function GroupPage({
           </span>
         </p>
         {isOwner && (
-          <details className="text-sm text-gray-500 dark:text-gray-400">
+          <details className="text-sm text-gray-600 dark:text-gray-300">
             <summary className="cursor-pointer select-none font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
               redenumește / șterge grupul
             </summary>
@@ -185,7 +185,7 @@ export default async function GroupPage({
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-medium">Membri</h2>
             {group.members.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Niciun membru încă. Adaugă mai jos.
               </p>
             ) : (
@@ -215,18 +215,18 @@ export default async function GroupPage({
                           <span className="font-medium">
                             {member.name}
                             {member.userId === group.ownerId ? (
-                              <span className="ml-2 text-xs font-normal text-gray-400">
+                              <span className="ml-2 text-xs font-medium text-gray-600 dark:text-gray-300">
                                 owner
                               </span>
                             ) : (
                               member.userId && (
-                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                <span className="ml-2 text-xs font-medium text-gray-600 dark:text-gray-300">
                                   cont legat
                                 </span>
                               )
                             )}
                           </span>
-                          <span className="text-xs text-gray-400">editează</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-300">editează</span>
                         </summary>
                         <div className="mt-3 flex flex-col gap-3">
                           <FeedbackForm
@@ -253,7 +253,7 @@ export default async function GroupPage({
                             <SubmitButton>Salvează</SubmitButton>
                           </FeedbackForm>
                           {isOwner && locked && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-gray-600 dark:text-gray-300">
                               Nu poate fi șters — {reasons.join(" și ")}. Șterge sau
                               reatribuie întâi acele înregistrări.
                             </p>
@@ -310,7 +310,7 @@ export default async function GroupPage({
           <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
             <h2 className="text-lg font-medium">Cheltuieli</h2>
             {group.members.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Adaugă întâi un membru ca să poți înregistra cheltuieli.
               </p>
             ) : (
@@ -324,7 +324,7 @@ export default async function GroupPage({
             )}
             {group.expenses.length === 0 ? (
               group.members.length > 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   Nicio cheltuială încă. Adaugă una ca să vezi soldurile.
                 </p>
               )
@@ -347,7 +347,7 @@ export default async function GroupPage({
                         )}
                         {expense.description}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         plătit de {expense.paidBy.name} · împărțit între{" "}
                         {expense.participants.map((p) => p.member.name).join(", ")}
                         {expense.splitMode !== "EQUAL" &&
@@ -363,7 +363,7 @@ export default async function GroupPage({
                       <span className="text-right font-medium tabular-nums">
                         {formatMoney(expense.amount, expense.currency)}
                         {expense.currency !== base && (
-                          <span className="block text-xs font-normal text-gray-400">
+                          <span className="block text-sm font-normal text-gray-600 dark:text-gray-300">
                             ≈{" "}
                             {formatMoney(
                               convertToBase(expense.amount, expense.rateMicros),
@@ -376,7 +376,7 @@ export default async function GroupPage({
                         <>
                           <Link
                             href={`/groups/${group.id}/expenses/${expense.id}/edit`}
-                            className="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                            className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
                           >
                             editează
                           </Link>
@@ -389,7 +389,7 @@ export default async function GroupPage({
                           >
                             <ConfirmButton
                               message={`Ștergi cheltuiala „${expense.description}”?`}
-                              className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                              className="text-sm font-medium text-red-700 transition hover:underline dark:text-red-400"
                               aria-label={`Șterge ${expense.description}`}
                             >
                               șterge
@@ -410,7 +410,7 @@ export default async function GroupPage({
           <section className="card flex flex-col gap-3 p-4">
             <h2 className="text-lg font-medium">Solduri</h2>
             {group.members.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Adaugă membri pentru a vedea soldurile.
               </p>
             ) : (
@@ -422,10 +422,10 @@ export default async function GroupPage({
                       className={
                         "shrink-0 tabular-nums " +
                         (b.net > 0
-                          ? "text-green-600 dark:text-green-400"
+                          ? "text-green-700 dark:text-green-400"
                           : b.net < 0
                             ? "text-red-600 dark:text-red-400"
-                            : "text-gray-500")
+                            : "text-gray-600 dark:text-gray-300")
                       }
                     >
                       {b.net > 0 ? "i se datorează " : b.net < 0 ? "datorează " : ""}
@@ -471,7 +471,7 @@ export default async function GroupPage({
           <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800 lg:border-t-0 lg:pt-0">
             <h2 className="text-lg font-medium">Plăți</h2>
             {group.payments.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Nicio plată înregistrată încă.
               </p>
             ) : (
@@ -484,7 +484,7 @@ export default async function GroupPage({
                     <span>
                       <span className="font-medium">{payment.from.name}</span> →{" "}
                       <span className="font-medium">{payment.to.name}</span>
-                      <span className="ml-2 text-xs text-gray-400">
+                      <span className="ml-2 text-xs text-gray-600 dark:text-gray-300">
                         {formatRelativeTime(payment.createdAt, now)}
                       </span>
                     </span>
@@ -505,7 +505,7 @@ export default async function GroupPage({
                               payment.amount,
                               base
                             )})?`}
-                            className="text-sm text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            className="text-sm font-medium text-red-700 transition hover:underline dark:text-red-400"
                           >
                             șterge
                           </ConfirmButton>
@@ -582,7 +582,7 @@ export default async function GroupPage({
 
           <section className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
             <h2 className="text-lg font-medium">Invită pe cineva</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Oricine deschide un link activ și e autentificat intră în grup.
               Linkurile expiră după 7 zile.
             </p>
@@ -601,7 +601,7 @@ export default async function GroupPage({
                       <div className="flex shrink-0 items-center gap-3">
                         <CopyButton
                           text={url}
-                          className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                          className="text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
                         />
                         {isOwner && (
                           <form
@@ -613,7 +613,7 @@ export default async function GroupPage({
                           >
                             <SubmitButton
                               pendingLabel="…"
-                              className="text-gray-400 transition hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
+                              className="font-medium text-red-700 transition hover:underline disabled:opacity-50 dark:text-red-400"
                             >
                               revocă
                             </SubmitButton>
@@ -626,7 +626,7 @@ export default async function GroupPage({
               </ul>
             )}
             {!isOwner ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Doar owner-ul grupului poate genera linkuri de invitație.
               </p>
             ) : (

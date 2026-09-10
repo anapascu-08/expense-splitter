@@ -18,7 +18,7 @@ export default async function RegisterPage({
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-4 py-16">
       <header>
         <h1 className="text-2xl font-semibold">Cont nou</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           {invite ? (
             <>
               <span className="font-medium">{invite.inviterName}</span> te-a

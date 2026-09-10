@@ -24,7 +24,7 @@ function Bars({
           <span className="w-28 shrink-0 truncate">{row.label}</span>
           <span className="h-2 flex-1 rounded bg-gray-100 dark:bg-gray-800">
             <span
-              className="block h-2 rounded bg-gray-400 dark:bg-gray-500"
+              className="block h-2 rounded bg-gray-500 dark:bg-gray-400"
               style={{ width: `${(row.total / max) * 100}%` }}
             />
           </span>
@@ -68,14 +68,14 @@ export function GroupSummary({
     <section className="flex flex-col gap-4 border-t border-gray-200 pt-6 dark:border-gray-800">
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-medium">Rezumat</h2>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
+        <span className="text-sm text-gray-600 dark:text-gray-300">
           Total grup: {formatMoney(groupTotal(expenses), currency)}
         </span>
       </div>
 
       {categoryRows.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">
             Pe categorii
           </h3>
           <Bars rows={categoryRows} currency={currency} />
@@ -83,7 +83,7 @@ export function GroupSummary({
       )}
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">
           Cine cât a plătit
         </h3>
         <Bars rows={payerRows} currency={currency} />

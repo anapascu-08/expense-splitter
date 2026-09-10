@@ -22,7 +22,7 @@ export async function SiteHeader() {
             <form action={logout}>
               <button
                 type="submit"
-                className="text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                className="text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
               >
                 Deconectare
               </button>
@@ -31,7 +31,7 @@ export async function SiteHeader() {
         ) : (
           <Link
             href="/login"
-            className="text-sm text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            className="text-sm text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
           >
             Autentificare
           </Link>

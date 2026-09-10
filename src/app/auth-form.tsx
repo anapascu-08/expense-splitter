@@ -80,7 +80,7 @@ export function AuthForm({ mode, action, next }: Props) {
       {!isRegister && (
         <Link
           href={withNext("/forgot-password")}
-          className="self-end text-xs text-gray-500 hover:underline dark:text-gray-400"
+          className="self-end text-sm text-gray-600 hover:underline dark:text-gray-300"
         >
           Ai uitat parola?
         </Link>
@@ -108,7 +108,7 @@ export function AuthForm({ mode, action, next }: Props) {
             : "Autentifică-te"}
       </button>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <p className="text-sm text-gray-600 dark:text-gray-300">
         {isRegister ? (
           <>
             Ai deja cont?{" "}
