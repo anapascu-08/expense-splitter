@@ -9,7 +9,7 @@ export type GroupAccess = { user: CurrentUser; role: string };
 // 404 rather than a 403 so we don't reveal that the group exists.
 export const requireGroupAccess = cache(
   async (groupId: string): Promise<GroupAccess> => {
-    const user = await requireUser();
+    const user = await requireUser(`/groups/${groupId}`);
     const membership = await prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId: user.id } },
       select: { role: true },

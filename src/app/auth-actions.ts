@@ -12,6 +12,7 @@ import {
   consumePasswordResetToken,
 } from "@/lib/auth";
 import { buildPasswordResetEmail, sendEmail } from "@/lib/email";
+import { safeNext } from "@/lib/safe-next";
 import type { FormState } from "@/app/form-state";
 
 export type AuthState =
@@ -19,16 +20,6 @@ export type AuthState =
   | undefined;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Only redirect to same-origin absolute paths. Reject protocol-relative
-// ("//evil.com") and the backslash variants ("/\evil.com", "\evil.com")
-// that browsers normalise to "//" when following a Location header.
-function safeNext(next: unknown): string {
-  if (typeof next !== "string") return "/";
-  if (!next.startsWith("/")) return "/";
-  if (next.startsWith("//") || next.startsWith("/\\")) return "/";
-  return next;
-}
 
 export async function register(
   _prevState: AuthState,

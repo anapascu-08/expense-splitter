@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { loginRedirect } from "@/lib/safe-next";
 
 const scrypt = promisify(scryptCb) as (
   password: string | Buffer,
@@ -97,9 +98,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return session.user;
 });
 
-export async function requireUser(): Promise<CurrentUser> {
+// `next` is the path to come back to after signing in — a page guard passes its
+// own URL so a shared deep link survives the login detour. Omitted (or "/") ⇒
+// a plain /login.
+export async function requireUser(next?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginRedirect(next));
   return user;
 }
 

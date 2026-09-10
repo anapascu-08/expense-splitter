@@ -4,11 +4,13 @@ import { makeUser, makeGroup, addMember, signIn } from "@/test/factories";
 import { catchRedirect, expectNotFound } from "@/test/next-navigation-errors";
 
 describe("requireGroupAccess", () => {
-  it("redirects to /login when there is no session", async () => {
+  it("redirects to /login carrying the group as ?next= when there is no session", async () => {
     const { user } = await makeUser();
     const group = await makeGroup(user.id);
     // not signed in
-    expect(await catchRedirect(requireGroupAccess(group.id))).toBe("/login");
+    expect(await catchRedirect(requireGroupAccess(group.id))).toBe(
+      `/login?next=${encodeURIComponent(`/groups/${group.id}`)}`
+    );
   });
 
   it("404s when the user is signed in but not a member", async () => {
