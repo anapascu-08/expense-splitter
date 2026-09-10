@@ -28,6 +28,10 @@ export const viewport: Viewport = {
   ],
 };
 
+// Runs before first paint so the resolved theme (a manual choice, or the OS
+// when the choice is "system") is on <html> before any CSS applies — no flash.
+const themeScript = `(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();`;
+
 // Explicit type rather than Next's generated `LayoutProps` global, which only
 // exists after `next dev`/`next build` writes .next/types — so `tsc` in CI
 // (which runs before the build) can't see it.
@@ -37,6 +41,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="ro"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}

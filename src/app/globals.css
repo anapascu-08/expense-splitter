@@ -1,13 +1,26 @@
 @import "tailwindcss";
 
+/* The theme is driven by a [data-theme] attribute on <html> (set before paint
+   by the inline script in layout.tsx, kept in sync by ThemeToggle), not by the
+   prefers-color-scheme media query — so a manual choice can override the OS.
+   "system" resolves to light/dark at runtime, so the attribute is always one
+   of those two. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  /* Tell the UA both themes are supported so native controls (select popups,
-     scrollbars, checkboxes, Chrome autofill) follow the page instead of
-     staying light while everything around them is dark. */
+  /* Both themes are supported (native select popups, scrollbars, checkboxes,
+     Chrome autofill follow the page). Narrowed per resolved theme below. */
   color-scheme: light dark;
 
   --background: #ffffff;
   --foreground: #171717;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -30,15 +43,13 @@
   --color-muted: #52525b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-border: #27272a;
-    --color-border-strong: #52525b;
-    --color-surface: #141414;
-    --color-muted: #a1a1aa;
-  }
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --color-border: #27272a;
+  --color-border-strong: #52525b;
+  --color-surface: #141414;
+  --color-muted: #a1a1aa;
 }
 
 body {
@@ -58,10 +69,8 @@ body {
   }
   /* The indigo accent only clears 3:1 on the dark background; lift the ring to
      a lighter indigo there. */
-  @media (prefers-color-scheme: dark) {
-    :focus-visible {
-      outline-color: #a5b4fc;
-    }
+  :root[data-theme="dark"] :focus-visible {
+    outline-color: #a5b4fc;
   }
 }
 
